@@ -1,0 +1,302 @@
+import { Link, useNavigate } from "react-router";
+import ImageWithBasePath from "../../../../../core/imageWithBasePath";
+import { all_routes } from "../../../../routes/all_routes";
+import { useState, useEffect } from "react";
+import SearchInput from "../../../../../core/common/dataTable/dataTableSearch";
+import Datatable from "../../../../../core/common/dataTable";
+import axios from "axios";
+
+// Axios instance with interceptors
+const api = axios.create({
+  baseURL: "http://3.109.62.26/api/clinic/",
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem("refresh_token");
+        if (!refreshToken) throw new Error("No refresh token");
+
+        const res = await axios.post("http://3.109.62.26/api/token/refresh/", {
+          refresh: refreshToken,
+        });
+
+        const newAccessToken = res.data.access;
+        localStorage.setItem("access_token", newAccessToken);
+        originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        window.location.href = "/login-cover";
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+const ClinicAppointments = () => {
+  const navigate = useNavigate();
+  const token = localStorage.getItem("access_token");
+
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchText, setSearchText] = useState<string>("");
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<boolean>(false);
+
+  // Fetch appointments
+  useEffect(() => {
+    if (!token) {
+      navigate("/login-cover");
+      return;
+    }
+    fetchAppointments();
+  }, [navigate, token]);
+
+  const fetchAppointments = async () => {
+    try {
+      const res = await api.get("appointments/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const appointments = Array.isArray(res.data)
+        ? res.data
+        : res.data.results || [];
+      setData(appointments);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Delete
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await api.delete(`appointments/${deleteId}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setData((prev) => prev.filter((item) => item.id !== deleteId));
+    } catch (error) {
+      console.error("Delete failed:", error);
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
+    }
+  };
+
+  const columns = [
+    {
+      title: "Appointment ID",
+      dataIndex: "appointment_id",
+      render: (appointment_id: number) => appointment_id,
+      sorter: (a: any, b: any) => a.appointment_id - b.appointment_id,
+    },
+    {
+      title: "Date & Time",
+      dataIndex: "appointment_date",
+      render: (text: string, record: any) =>
+        `${record.appointment_date} ${record.appointment_time || ""}`,
+      sorter: (a: any, b: any) =>
+        (a.appointment_date + a.appointment_time).localeCompare(
+          b.appointment_date + b.appointment_time
+        ),
+    },
+    {
+      title: "Patient",
+      dataIndex: "patient",
+      render: (patient: any) =>
+        patient ? (
+          <div className="d-flex align-items-center">
+            <Link to={all_routes.patientDetails} className="avatar avatar-md me-2">
+              <ImageWithBasePath
+                src={patient.profile_image || "assets/img/users/default.png"}
+                alt="patient"
+                className="rounded-circle"
+              />
+            </Link>
+            <Link to={all_routes.patientDetails} className="text-dark fw-semibold">
+              {patient.first_name} {patient.last_name}
+              <span className="text-body fs-13 fw-normal d-block">{patient.phone}</span>
+            </Link>
+          </div>
+        ) : (
+          "N/A"
+        ),
+      sorter: (a: any, b: any) =>
+        (a.patient?.first_name || "").localeCompare(b.patient?.first_name || ""),
+    },
+    {
+      title: "Doctor",
+      dataIndex: "doctor",
+      render: (doctor: any) =>
+        doctor ? (
+          <div className="d-flex align-items-center">
+            <Link to={all_routes.doctordetails} className="avatar me-2 flex-shrink-0">
+              <ImageWithBasePath
+                src={doctor.profile_image || "assets/img/doctors/default.png"}
+                alt="doctor"
+                className="rounded-circle"
+              />
+            </Link>
+            <div>
+              <h6 className="fs-14 mb-1 text-truncate">
+                <Link to={all_routes.doctordetails} className="fw-semibold">
+                  {doctor.name ||
+                    `${doctor.user?.first_name || ""} ${doctor.user?.last_name || ""}`}
+                </Link>
+              </h6>
+              <p className="mb-0 fs-13 text-truncate">{doctor.department || ""}</p>
+            </div>
+          </div>
+        ) : (
+          "N/A"
+        ),
+      sorter: (a: any, b: any) => (a.doctor?.name || "").localeCompare(b.doctor?.name || ""),
+    },
+    {
+      title: "Clinic",
+      dataIndex: "clinic",
+      render: (clinic: any) => clinic?.name || "N/A",
+      sorter: (a: any, b: any) => (a.clinic?.name || "").localeCompare(b.clinic?.name || ""),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      render: (status: string) => (
+        <span
+          className={`fs-13 badge ${
+            status === "CANCELLED"
+              ? "badge-soft-danger text-danger"
+              : status === "SCHEDULED"
+              ? "badge-soft-primary text-primary"
+              : status === "COMPLETED"
+              ? "badge-soft-success text-success"
+              : "badge-soft-warning text-warning"
+          } rounded fw-medium`}
+        >
+          {status}
+        </span>
+      ),
+    },
+    {
+      title: "Actions",
+      render: (record: any) => (
+        <div className="action-item">
+          <Link to="#" data-bs-toggle="dropdown">
+            <i className="ti ti-dots-vertical" />
+          </Link>
+          <ul className="dropdown-menu p-2">
+            <li>
+              <Link
+                to={`/clinic-dashboard/edit-appointments/${record.id}`}
+                className="dropdown-item d-flex align-items-center"
+              >
+                Edit
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="#"
+                className="dropdown-item d-flex align-items-center"
+                data-bs-toggle="modal"
+                data-bs-target="#delete_modal"
+                onClick={() => setDeleteId(record.id)}
+              >
+                Delete
+              </Link>
+            </li>
+          </ul>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <div className="page-wrapper">
+        <div className="content">
+          {/* Header */}
+          <div className="d-flex align-items-sm-center flex-sm-row flex-column gap-2 mb-3 pb-3 border-bottom">
+            <div className="flex-grow-1">
+              <h4 className="fw-bold mb-0">
+                Appointments
+                <span className="badge badge-soft-primary fs-13 fw-medium ms-2">
+                  Total Appointments : {data.length}
+                </span>
+              </h4>
+            </div>
+            <div className="text-end d-flex">
+              <Link
+                to="/clinic-dashboard/new-appointments"
+                className="btn btn-primary ms-2 fs-13 btn-md"
+              >
+                <i className="ti ti-plus me-1" />
+                Add Appointments
+              </Link>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="table-search mb-3">
+            <SearchInput value={searchText} onChange={(value) => setSearchText(value)} />
+          </div>
+
+          {/* Table */}
+          {loading ? (
+            <p>Loading appointments...</p>
+          ) : (
+            <div className="table-responsive">
+              <Datatable
+                columns={columns}
+                dataSource={data || []}
+                Selection={false}
+                searchText={searchText}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Delete Modal */}
+      <div className="modal fade" id="delete_modal" tabIndex={-1}>
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-body text-center">
+              <h5>Are you sure you want to delete this appointment?</h5>
+              <div className="d-flex justify-content-center mt-3">
+                <button
+                  className="btn btn-light me-2"
+                  data-bs-dismiss="modal"
+                  disabled={deleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="btn btn-danger position-relative z-1"
+                  disabled={deleting}
+                  data-bs-dismiss="modal"
+                >
+                  {deleting ? "Deleting..." : "Yes, Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default ClinicAppointments;
