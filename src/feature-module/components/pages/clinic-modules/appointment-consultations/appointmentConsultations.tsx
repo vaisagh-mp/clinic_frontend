@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { useState } from "react";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import { all_routes } from "../../../../routes/all_routes";
 import ComplaintForm from "../../../../../core/common/dynamic-list/complientForm";
@@ -11,6 +12,15 @@ import { empty_Stomach } from "../../../../../core/common/selectOption";
 import InvoiceList from "../../../../../core/common/dynamic-list/InvoiceList";
 
 const AppointmentConsultations = () => {
+
+  const [formData, setFormData] = useState({
+    complaints: "",
+    diagnosis: "",
+    advices: "",
+    investigations: [], // if InvestigationList returns an array
+    empty_stomach_required: false,
+    // add other fields if needed
+  });
   return (
     <>
       {/* ========================
@@ -259,7 +269,15 @@ const AppointmentConsultations = () => {
             </div>
             {/* end card header */}
             <div className="card-body">
-              <ComplaintForm />
+              <ComplaintForm
+  value={formData.complaints}
+  onChange={(val) =>
+    setFormData((prev) => ({
+      ...prev,
+      complaints: val,
+    }))
+  }
+/>
             </div>
             {/* end card-body */}
           </div>
@@ -273,7 +291,16 @@ const AppointmentConsultations = () => {
             {/* end card header */}
             <div className="card-body pb-0">
               <div className="">
-                <DiagnosisForm />
+                <DiagnosisForm
+  value={formData.diagnosis}
+  onChange={(val) =>
+    setFormData((prev) => ({
+      ...prev,
+      diagnosis: val,
+    }))
+  }
+/>
+
               </div>
             </div>
             {/* end card-body */}
@@ -300,7 +327,16 @@ const AppointmentConsultations = () => {
             </div>
             {/* end card header */}
             <div className="card-body advices-list pb-0">
-              <AdviceForm />
+              <AdviceForm
+  value={formData.advices}
+  onChange={(val) =>
+    setFormData((prev) => ({
+      ...prev,
+      advices: val,
+    }))
+  }
+/>
+
             </div>
             {/* end card body */}
           </div>

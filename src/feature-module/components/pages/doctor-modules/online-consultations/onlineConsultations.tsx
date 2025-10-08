@@ -551,8 +551,9 @@ const OnlineConsultations = () => {
           <div className="card-body">
             <AdviceForm
   value={formData.advices}
-  onChange={(val) => setFormData(prev => ({ ...prev, advices: val }))}
+  onChange={(val: any) => setFormData((prev: any) => ({ ...prev, advices: val }))}
 />
+
           </div>
         </div>
 
@@ -563,7 +564,9 @@ const OnlineConsultations = () => {
           <div className="card-body">
             <InvestigationList
   value={formData.investigations}
-  onChange={(val) => setFormData(prev => ({ ...prev, investigations: val }))}
+  onChange={(val: any) =>
+    setFormData((prev: any) => ({ ...prev, investigations: val }))
+  }
 />
           </div>
         </div>

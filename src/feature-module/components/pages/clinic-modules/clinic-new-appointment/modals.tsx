@@ -8,8 +8,8 @@ import {
   Primary_Doctor,
   State,
   Status,
-} from "../../../../../../core/common/selectOption";
-import CommonSelect from "../../../../../../core/common/common-select/commonSelect";
+} from "../../../../../core/common/selectOption";
+import CommonSelect from "../../../../../core/common/common-select/commonSelect";
 import { DatePicker } from "antd";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
