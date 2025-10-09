@@ -7,11 +7,16 @@ import DiagnosisForm from "../../../../../core/common/dynamic-list/diagnosisForm
 import MedicalForm from "../../../../../core/common/dynamic-list/medicalForm";
 import AdviceForm from "../../../../../core/common/dynamic-list/AdviceForm";
 import InvestigationList from "../../../../../core/common/dynamic-list/InvestigationForm";
+import type { InvestigationItem } from "../../../../../core/common/dynamic-list/InvestigationForm";
 import CommonSelect from "../../../../../core/common/common-select/commonSelect";
 import { empty_Stomach } from "../../../../../core/common/selectOption";
 import InvoiceList from "../../../../../core/common/dynamic-list/InvoiceList";
 
 const AppointmentConsultations = () => {
+
+  const [investigations, setInvestigations] = useState<InvestigationItem[]>([
+  { id: Date.now(), value: "" },
+]);
 
   const [formData, setFormData] = useState({
     complaints: "",
@@ -349,8 +354,12 @@ const AppointmentConsultations = () => {
             </div>
             {/* end card header */}
             <div className="card-body invest-list pb-0">
-              <InvestigationList />
+              <InvestigationList
+                value={investigations}
+                onChange={setInvestigations}
+              />
             </div>
+
             {/* end card body */}
           </div>
           {/* end card */}

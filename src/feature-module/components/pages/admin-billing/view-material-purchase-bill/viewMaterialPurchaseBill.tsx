@@ -7,6 +7,14 @@ import { saveAs } from "file-saver";
 import Header from "../../../../../core/common/header/header";
 import Sidebar from "../../../../../core/common/sidebar/sidebarAdmin";
 
+
+interface MaterialItem {
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+}
+
+
 const ViewMaterialPurchaseBill = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -48,7 +56,15 @@ const ViewMaterialPurchaseBill = () => {
   if (loading) return <p>Loading bill details...</p>;
   if (!bill) return <p>No bill data found.</p>;
 
-  const { clinic, supplier_name, invoice_number, bill_number, bill_date, status, items } = bill;
+  const { clinic_name, supplier_name, invoice_number, bill_number, bill_date, status, items } = bill as {
+    clinic_name: string;
+    supplier_name: string;
+    invoice_number: string;
+    bill_number: string;
+    bill_date: string;
+    status: string;
+    items: MaterialItem[];
+  };
 
   // Download XLS function with bold headers and frozen top row
   const downloadXLS = () => {

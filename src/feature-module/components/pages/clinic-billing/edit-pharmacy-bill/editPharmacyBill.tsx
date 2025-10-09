@@ -28,16 +28,23 @@ interface Procedure {
   name: string;
 }
 
+interface FormData {
+  patient_id: string;
+  bill_date: string;
+  status: string;
+  items: Item[];
+}
+
 const EditPharmacyBill = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    patient_id: "",
-    bill_date: "",
-    status: "PENDING",
-    items: [{ item_type: "", medicine: null, procedure: null, quantity: 1 }],
-  });
+  const [formData, setFormData] = useState<FormData>({
+  patient_id: "",
+  bill_date: "",
+  status: "PENDING",
+  items: [{ item_type: "", medicine: null, procedure: null, quantity: 1 }],
+});
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);

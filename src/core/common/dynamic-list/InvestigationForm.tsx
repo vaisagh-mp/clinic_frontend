@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-interface InvestigationItem {
+export interface InvestigationItem {
   id: number;
   value: string;
 }

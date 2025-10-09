@@ -8,6 +8,14 @@ import Header from "../../../../../core/common/header/header";
 import Sidebar from "../../../../../core/common/sidebar/sidebarAdmin";
 import Sidebarthree from "../../../../../core/common/sidebarthree/sidebarthree";
 
+
+interface BillItem {
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+}
+
+
 const ViewClinicBill = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -55,7 +63,7 @@ const ViewClinicBill = () => {
   const downloadXLS = () => {
     if (!bill) return;
 
-    const data = items.map((item) => ({
+    const data = items.map((item: BillItem) => ({
       "Bill Number": bill_number,
       "Bill Date": new Date(bill_date).toLocaleDateString(),
       Vendor: vendor_name,

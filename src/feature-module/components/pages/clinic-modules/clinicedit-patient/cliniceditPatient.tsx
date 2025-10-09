@@ -4,6 +4,7 @@ import { all_routes } from "../../../../routes/all_routes";
 import { DatePicker } from "antd";
 import axios from "axios";
 import dayjs from "dayjs";
+import { Dayjs } from "dayjs";
 
 const ClinicEditPatient = () => {
   const navigate = useNavigate();
@@ -90,13 +91,14 @@ const ClinicEditPatient = () => {
   };
 
   // Handle DOB
-  const handleDateChange = (date: any, dateString: string) => {
+  const handleDateChange = (date: Dayjs | null, dateString: string | string[]) => {
+    let formatted = "";
+    
     if (date) {
-      const formatted = date.format("YYYY-MM-DD");
-      setFormData((prev) => ({ ...prev, dob: formatted }));
-    } else {
-      setFormData((prev) => ({ ...prev, dob: "" }));
+      formatted = date.format("YYYY-MM-DD");
     }
+  
+    setFormData((prev) => ({ ...prev, dob: formatted }));
   };
 
   // Handle Profile Image

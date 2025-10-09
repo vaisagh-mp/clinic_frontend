@@ -33,17 +33,26 @@ interface Procedure {
   name: string;
 }
 
+
+interface FormData {
+  clinic_id: string;
+  patient_id: string;
+  bill_date: string;
+  status: string;
+  items: Item[];
+}
+
 const EditPharmacyBill = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    clinic_id: "",
-    patient_id: "",
-    bill_date: "",
-    status: "PENDING",
-    items: [{ item_type: "", medicine: null, procedure: null, quantity: 1 }],
-  });
+  const [formData, setFormData] = useState<FormData>({
+  clinic_id: "",
+  patient_id: "",
+  bill_date: "",
+  status: "PENDING",
+  items: [{ item_type: "", medicine: null, procedure: null, quantity: 1 }],
+});
 
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -148,13 +157,18 @@ const EditPharmacyBill = () => {
         // Map items robustly
         const mappedItems: Item[] = bill.items.map((item: any) => {
           if (item.item_type === "MEDICINE") {
-            let medId: number | null = item.medicine || null;
-            if (typeof medId === "string") {
+            const medRaw = item.medicine; // this could be number, string, or null
+            let medId: number | null = null;
+          
+            if (typeof medRaw === "string") {
               const medObj = medicines.find(
-                (m) => m.name.toLowerCase().trim() === medId.toLowerCase().trim()
+                (m) => m.name.toLowerCase().trim() === medRaw.toLowerCase().trim()
               );
               medId = medObj ? medObj.id : null;
+            } else if (typeof medRaw === "number") {
+              medId = medRaw;
             }
+          
             return {
               item_type: "MEDICINE",
               medicine: medId,
@@ -162,15 +176,18 @@ const EditPharmacyBill = () => {
               quantity: item.quantity || 1,
             };
           } else if (item.item_type === "PROCEDURE") {
+            const procRaw = item.procedure; // could be number, string, or null
             let procId: number | null = null;
-            if (typeof item.procedure === "number") {
-              procId = item.procedure;
-            } else if (typeof item.procedure === "string") {
+          
+            if (typeof procRaw === "string") {
               const procObj = procedures.find(
-                (p) => p.name.toLowerCase().trim() === item.procedure.toLowerCase().trim()
+                (p) => p.name.toLowerCase().trim() === procRaw.toLowerCase().trim()
               );
               procId = procObj ? procObj.id : null;
+            } else if (typeof procRaw === "number") {
+              procId = procRaw;
             }
+          
             return {
               item_type: "PROCEDURE",
               procedure: procId,
@@ -181,6 +198,7 @@ const EditPharmacyBill = () => {
             return { item_type: "", medicine: null, procedure: null, quantity: 1 };
           }
         });
+
 
         setFormData({
           clinic_id,
