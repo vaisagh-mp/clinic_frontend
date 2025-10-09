@@ -305,7 +305,9 @@ export interface DatatableProps {
   dataSource: any[]; // You can replace `any[]` with the specific type of dataSource you expect
   Selection?: boolean | undefined;
   searchText: string; 
+  onSearch?: (value: string) => void;
 }
+
 
 export interface CountriesData {
   name: string;

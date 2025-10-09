@@ -225,14 +225,22 @@ const OnlineConsultations = () => {
 
   // -------------------- Form Handlers --------------------
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+) => {
+  const { name, value, type } = e.target;
+
+  // 🛠️ Type guard: Only use 'checked' for checkboxes
+  const newValue =
+    type === "checkbox"
+      ? (e.target as HTMLInputElement).checked
+      : value;
+
+  setFormData((prev: any) => ({
+    ...prev,
+    [name]: newValue,
+  }));
+};
+
 
   const handleSubmit = async () => {
     const token = localStorage.getItem("access_token");
@@ -260,13 +268,11 @@ const OnlineConsultations = () => {
   },
   { headers: { Authorization: `Bearer ${token}` } }
 );
-
-
       alert("Consultation saved successfully!");
-      navigate("/doctor-dashboard/consultations");
-    } catch (error) {
-      console.error("Error saving consultation:", error.response?.data || error);
-    }
+  navigate("/doctor-dashboard/consultations");
+} catch (error: any) {
+  console.error("Error saving consultation:", error.response?.data || error);
+}
   };
 
   if (!appointmentData) return <p>Loading consultation details...</p>;
@@ -395,7 +401,7 @@ const OnlineConsultations = () => {
           <div className="card-body">
             <ComplaintForm
   value={formData.complaints}
-  onChange={(val) => setFormData(prev => ({ ...prev, complaints: val }))}
+  onChange={(val) => setFormData((prev: any) => ({ ...prev, complaints: val }))}
 />
           </div>
         </div>
@@ -406,9 +412,11 @@ const OnlineConsultations = () => {
           </div>
           <div className="card-body">
             <DiagnosisForm
-  value={formData.diagnosis}
-  onChange={(val) => setFormData(prev => ({ ...prev, diagnosis: val }))}
-/>
+              value={formData.diagnosis}
+              onChange={(val) =>
+  setFormData((prev: any) => ({ ...prev, diagnosis: val }))
+}
+            />
           </div>
         </div>
 
@@ -563,11 +571,12 @@ const OnlineConsultations = () => {
           </div>
           <div className="card-body">
             <InvestigationList
-  value={formData.investigations}
-  onChange={(val: any) =>
-    setFormData((prev: any) => ({ ...prev, investigations: val }))
-  }
-/>
+              value={formData.investigations}
+              onChange={(val) =>
+                setFormData((prev : any) => ({ ...prev, investigations: val }))
+              }
+            />
+
           </div>
         </div>
 
@@ -599,11 +608,12 @@ const OnlineConsultations = () => {
                       : empty_Stomach[0]
                   }
                   onChange={(val) =>
-                    setFormData((prev) => ({
+                    setFormData((prev: any) => ({
                       ...prev,
                       empty_stomach_required: val.value,
                     }))
                   }
+
                 />
               </div>
             </div>

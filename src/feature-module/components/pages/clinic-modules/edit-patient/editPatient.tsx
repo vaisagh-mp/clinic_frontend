@@ -3,9 +3,9 @@ import { Link, useNavigate, useParams } from "react-router";
 import { all_routes } from "../../../../routes/all_routes";
 import { DatePicker } from "antd";
 import axios from "axios";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 
-const EditPatient = () => {
+const ClinicEditPatient = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // get patient id from route params
 
@@ -90,14 +90,14 @@ const EditPatient = () => {
   };
 
   // Handle DOB
-  const handleDateChange = (date: any, dateString: string) => {
-    if (date) {
-      const formatted = date.format("YYYY-MM-DD");
-      setFormData((prev) => ({ ...prev, dob: formatted }));
-    } else {
-      setFormData((prev) => ({ ...prev, dob: "" }));
-    }
-  };
+  const handleDateChange = (date: Dayjs | null, dateString: string | string[]) => {
+  if (date) {
+    const formatted = date.format("YYYY-MM-DD"); // format for API
+    setFormData((prev) => ({ ...prev, dob: formatted }));
+  } else {
+    setFormData((prev) => ({ ...prev, dob: "" }));
+  }
+};
 
   // Handle Profile Image
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,7 +137,7 @@ const EditPatient = () => {
 
       console.log("Patient Updated:", response.data);
       alert("Patient updated successfully!");
-      navigate(all_routes.patients);
+      navigate(all_routes.clinicpatients);
     } catch (error: any) {
       console.error("Error updating patient:", error.response?.data || error);
       alert("Failed to update patient. Please try again.");
@@ -152,7 +152,7 @@ const EditPatient = () => {
             <div className="col-lg-10">
               <div className="mb-4">
                 <h6 className="fw-bold mb-0 d-flex align-items-center">
-                  <Link to={all_routes.patients} className="text-dark">
+                  <Link to={all_routes.clinicpatients} className="text-dark">
                     <i className="ti ti-chevron-left me-1" />
                     Patients
                   </Link>
@@ -290,6 +290,7 @@ const EditPatient = () => {
                               value={formData.dob ? dayjs(formData.dob) : null}
                               onChange={handleDateChange}
                             />
+
                             <span className="input-icon-addon">
                               <i className="ti ti-calendar" />
                             </span>
@@ -389,4 +390,4 @@ const EditPatient = () => {
   );
 };
 
-export default EditPatient;
+export default ClinicEditPatient;

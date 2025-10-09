@@ -5,11 +5,14 @@ import type { DatatableProps } from "../../data/interface";
 
 const { Option } = Select;
 
+import SearchInput from "../../common/dataTable/dataTableSearch";
+
 const Datatable: React.FC<DatatableProps> = ({
   columns,
   dataSource,
   Selection,
   searchText,
+  onSearch, // <-- accept it here
 }) => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<any[]>([]);
   const [Selections, setSelections] = useState<any>(true);
@@ -23,7 +26,7 @@ const Datatable: React.FC<DatatableProps> = ({
   useEffect(() => {
     const filteredData = dataSource.filter((record) =>
       Object.values(record).some((field) =>
-        String(field).toLowerCase().includes(searchText.toLowerCase())
+        String(field).toLowerCase().includes(searchText?.toLowerCase() || "")
       )
     );
     setFilteredDataSource(filteredData);
@@ -39,38 +42,46 @@ const Datatable: React.FC<DatatableProps> = ({
   };
 
   return (
-    <Table
-      className="table table-nowrap datatable"
-      rowSelection={Selections ? rowSelection : undefined}
-      columns={columns}
-      rowHoverable={false}
-      dataSource={filteredDataSource}
-      pagination={{
-        showSizeChanger: false,
-        pageSize,
-        onShowSizeChange: (size) => setPageSize(size),
-        total: filteredDataSource.length,
-        showTotal: (total) => (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            Rows per page:
-            <Select
-              value={pageSize}
-              onChange={(value) => setPageSize(value)}
-              style={{ width: 80 }}
-              popupMatchSelectWidth={false}
-            >
-              <Option value={10}>10</Option>
-              <Option value={20}>20</Option>
-              <Option value={30}>30</Option>
-            </Select>
-            of {total} Entries
-          </div>
-        ),
-        nextIcon: <i className="ti ti-chevron-right" />,
-        prevIcon: <i className="ti ti-chevron-left" />,
-      }}
-    />
+    <>
+      {onSearch && (
+        <div className="mb-2">
+          <SearchInput value={searchText || ""} onChange={onSearch} />
+        </div>
+      )}
+      <Table
+        className="table table-nowrap datatable"
+        rowSelection={Selections ? rowSelection : undefined}
+        columns={columns}
+        rowHoverable={false}
+        dataSource={filteredDataSource}
+        pagination={{
+          showSizeChanger: false,
+          pageSize,
+          onShowSizeChange: (size) => setPageSize(size),
+          total: filteredDataSource.length,
+          showTotal: (total) => (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              Rows per page:
+              <Select
+                value={pageSize}
+                onChange={(value) => setPageSize(value)}
+                style={{ width: 80 }}
+                popupMatchSelectWidth={false}
+              >
+                <Option value={10}>10</Option>
+                <Option value={20}>20</Option>
+                <Option value={30}>30</Option>
+              </Select>
+              of {total} Entries
+            </div>
+          ),
+          nextIcon: <i className="ti ti-chevron-right" />,
+          prevIcon: <i className="ti ti-chevron-left" />,
+        }}
+      />
+    </>
   );
 };
+
 
 export default Datatable;

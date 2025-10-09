@@ -54,13 +54,13 @@ const ViewLabBill = () => {
   const downloadXLS = () => {
     if (!bill) return;
 
-    const data = items.map((item, index) => ({
+    const data = items.map((item: any, index: number) => ({
       "Bill Number": bill_number,
       "Bill Date": new Date(bill_date).toLocaleDateString(),
       "Lab Name": lab_name,
-      "Clinic": bill.clinic_name || "N/A",  // ✅ use clinic_name
+      "Clinic": bill.clinic_name || "N/A", // ✅ use clinic_name
       "Service": item.test_or_service,
-      Cost: item.cost,
+      Cost: item.cost,
     }));
 
     const ws = XLSX.utils.json_to_sheet(data, {

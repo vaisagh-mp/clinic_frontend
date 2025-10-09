@@ -14,6 +14,17 @@ interface VitalSigns {
   weight: string;
 }
 
+interface Consultation {
+  created_at: string;
+  blood_pressure?: string;
+  heart_rate?: string;
+  spo2?: string;
+  temperature?: string;
+  respiratory_rate?: string;
+  weight?: string;
+  // add other fields if needed
+}
+
 interface Appointment {
   id: number;
   dateTime: string;
@@ -37,6 +48,20 @@ interface Patient {
   lastVisited: string;
   vitalSigns: VitalSigns;
 }
+
+
+interface FormattedAppointment {
+  id: number;
+  dateTime: string;
+  doctorName: string;
+  doctorImage: string;
+  specialization: string;
+  clinic: string;
+  status: string;
+  doctorId: number;
+  appointmentDate: string;
+}
+
 
 const ClinicpatientDetails = () => {
   const navigate = useNavigate();
@@ -126,34 +151,33 @@ const ClinicpatientDetails = () => {
 
       // --- Find last visited (latest completed appointment) ---
       const completedAppointments = formattedAppointments.filter(
-        (a) => a.status === "COMPLETED"
-      );
-      const lastVisited =
-        completedAppointments.length > 0
-          ? completedAppointments.sort(
-              (a, b) =>
-                new Date(b.appointmentDate).getTime() -
-                new Date(a.appointmentDate).getTime()
-            )[0].dateTime
-          : "N/A";
+          (a: FormattedAppointment) => a.status === "COMPLETED"
+        );
+        
+        const lastVisited =
+          completedAppointments.length > 0
+            ? completedAppointments.sort(
+                (a: FormattedAppointment, b: FormattedAppointment) =>
+                  new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()
+              )[0].dateTime
+            : "N/A";
 
       // --- Fetch consultations for this patient ---
       const consultationsRes = await axios.get(
         `http://3.109.62.26/api/clinic/consultations/?patient_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const consultationsData = consultationsRes.data || [];
+      const consultationsData: Consultation[] = consultationsRes.data || [];
 
       // --- Get the latest consultation for vital signs ---
       const latestConsultation =
         consultationsData.length > 0
           ? consultationsData.sort(
-              (a, b) =>
-                new Date(b.created_at).getTime() -
-                new Date(a.created_at).getTime()
+              (a: Consultation, b: Consultation) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             )[0]
           : null;
-
+          
       setPatient({
         id: data.id || 0,
         name:

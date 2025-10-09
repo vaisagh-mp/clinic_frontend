@@ -75,8 +75,9 @@ const NewAppointment = () => {
   const getModalContainer = () => document.getElementById("modal-datepicker") || document.body;
 
   const onChangeTime: TimePickerProps["onChange"] = (time, timeString) => {
-    setFormData((prev) => ({ ...prev, appointmentTime: timeString }));
-  };
+  setFormData((prev) => ({ ...prev, appointmentTime: timeString as string }));
+};
+
 
   const handleSubmit = async () => {
   try {

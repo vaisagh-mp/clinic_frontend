@@ -6,6 +6,7 @@ import SCol2Chart from "../chats/scol2";
 import SCol3Chart from "../chats/scol3";
 import SCol4Chart from "../chats/scol4";
 import { useState, useEffect } from "react";
+import type { ApexOptions } from "apexcharts";
 
 interface DashboardStats {
   total_doctors: number;
@@ -79,18 +80,34 @@ const ClinicDashboard = () => {
     fetchDashboard();
   }, [navigate]);
 
-  const sColChartOptions = {
-    chart: { width: 80, height: 54, type: "bar", toolbar: { show: false }, sparkline: { enabled: true } },
-    plotOptions: { bar: { horizontal: false, columnWidth: "70%", borderRadius: 3, endingShape: "rounded" } },
-    dataLabels: { enabled: false },
-    stroke: { show: false },
-    xaxis: { labels: { show: false }, axisTicks: { show: false }, axisBorder: { show: false } },
-    yaxis: { show: false },
-    grid: { show: false },
-    tooltip: { enabled: false },
-    colors: ["#2E37A4", "#2E37A4", "#2E37A4", "#2E37A4", "#FF955A", "#2E37A4", "#2E37A4"],
-    fill: { type: "solid" },
-  };
+  const sColChartOptions: ApexOptions = {
+  chart: {
+    width: 80,
+    height: 54,
+    type: "bar" as const, // ✅ assert literal type
+    toolbar: { show: false },
+    sparkline: { enabled: true },
+  },
+  plotOptions: {
+    bar: {
+      horizontal: false,
+      columnWidth: "70%",
+      borderRadius: 3,
+    },
+  },
+  dataLabels: { enabled: false },
+  stroke: { show: false },
+  xaxis: {
+    labels: { show: false },
+    axisTicks: { show: false },
+    axisBorder: { show: false },
+  },
+  yaxis: { show: false },
+  grid: { show: false },
+  tooltip: { enabled: false },
+  colors: ["#2E37A4", "#2E37A4", "#2E37A4", "#2E37A4", "#FF955A", "#2E37A4", "#2E37A4"],
+  fill: { type: "solid" },
+};
 
   const series = [{ name: "Data", data: [40, 15, 60, 15, 90, 20, 70] }];
 

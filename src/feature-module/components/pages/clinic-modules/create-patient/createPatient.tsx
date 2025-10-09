@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { all_routes } from "../../../../routes/all_routes";
 import { DatePicker } from "antd";
+import type { Dayjs } from "dayjs";
 import axios from "axios";
 
 const CreatePatient = () => {
@@ -55,14 +56,14 @@ const CreatePatient = () => {
   };
 
   // Handle DOB
-  const handleDateChange = (date: any, dateString: string) => {
-    if (date) {
-      const formatted = date.format("YYYY-MM-DD"); // format for API
-      setFormData((prev) => ({ ...prev, dob: formatted }));
-    } else {
-      setFormData((prev) => ({ ...prev, dob: "" }));
-    }
-  };
+  const handleDateChange = (date: Dayjs | null, dateString: string | string[]) => {
+  if (date) {
+    const formatted = date.format("YYYY-MM-DD"); // format for API
+    setFormData((prev) => ({ ...prev, dob: formatted }));
+  } else {
+    setFormData((prev) => ({ ...prev, dob: "" }));
+  }
+};
 
   // Handle Profile Image
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

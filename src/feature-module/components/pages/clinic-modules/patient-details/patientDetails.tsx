@@ -89,12 +89,12 @@ const PatientDetails = () => {
 
       // --- Get latest appointment date ---
       const latestAppointment = appointmentsData.length
-        ? appointmentsData.sort(
-            (a, b) =>
-              new Date(b.appointment_date).getTime() -
-              new Date(a.appointment_date).getTime()
+      ? [...appointmentsData] // copy to avoid mutating original array
+          .sort((a: Appointment, b: Appointment) =>
+            new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
           )[0]
-        : null;
+      : null;
+
 
       // --- Fetch latest vital signs from admin API ---
       const vitalRes = await axios.get(

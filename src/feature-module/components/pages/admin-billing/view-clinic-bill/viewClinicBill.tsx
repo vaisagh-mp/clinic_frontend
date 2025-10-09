@@ -54,7 +54,7 @@ const ViewClinicBill = () => {
   const downloadXLS = () => {
     if (!bill) return;
 
-    const data = items.map((item) => ({
+    const data = items.map((item: any) => ({
       "Bill Number": bill_number,
       "Bill Date": new Date(bill_date).toLocaleDateString(),
       Vendor: vendor_name,

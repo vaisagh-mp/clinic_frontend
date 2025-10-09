@@ -12,6 +12,7 @@ const DoctorAppointments = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  
 
   // Fetch appointments from API
   useEffect(() => {

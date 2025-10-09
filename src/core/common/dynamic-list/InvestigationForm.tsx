@@ -1,31 +1,37 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 
-const InvestigationList: React.FC = () => {
-  const [investigations, setInvestigations] = useState([
-    { id: Date.now(), value: "" },
-  ]);
+interface InvestigationItem {
+  id: number;
+  value: string;
+}
 
+interface InvestigationListProps {
+  value: InvestigationItem[];
+  onChange: (val: InvestigationItem[]) => void;
+}
+
+const InvestigationList: React.FC<InvestigationListProps> = ({ value, onChange }) => {
   const handleAddInvestigation = () => {
     const newItem = { id: Date.now() + Math.random(), value: "" };
-    const last = investigations[investigations.length - 1];
-    setInvestigations([...investigations.slice(0, -1), newItem, last]);
+    const last = value[value.length - 1];
+    onChange([...value.slice(0, -1), newItem, last]);
   };
 
   const handleRemoveInvestigation = (id: number) => {
-    setInvestigations((prev) => prev.filter((item) => item.id !== id));
+    onChange(value.filter((item) => item.id !== id));
   };
 
-  const handleChangeInvestigation = (id: number, value: string) => {
-    setInvestigations((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, value } : item))
+  const handleChangeInvestigation = (id: number, newValue: string) => {
+    onChange(
+      value.map((item) => (item.id === id ? { ...item, value: newValue } : item))
     );
   };
 
   return (
     <>
-      {investigations.map((item, index) => {
-        const isLast = index === investigations.length - 1;
+      {value.map((item, index) => {
+        const isLast = index === value.length - 1;
         return (
           <div className="mb-3 invest-list-item" key={item.id}>
             {index === 0 && (

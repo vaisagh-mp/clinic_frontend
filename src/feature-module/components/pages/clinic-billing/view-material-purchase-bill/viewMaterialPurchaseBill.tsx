@@ -8,6 +8,25 @@ import Header from "../../../../../core/common/header/header";
 import Sidebar from "../../../../../core/common/sidebar/sidebarAdmin";
 import Sidebarthree from "../../../../../core/common/sidebarthree/sidebarthree";
 
+
+interface BillItem {
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+}
+
+interface Bill {
+  clinic: string;
+  clinic_name?: string;
+  supplier_name: string;
+  invoice_number: string;
+  bill_number: string;
+  bill_date: string;
+  status: string;
+  items: BillItem[];
+}
+
+
 const ViewMaterialPurchaseBill = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -48,33 +67,34 @@ const ViewMaterialPurchaseBill = () => {
 
   if (loading) return <p>Loading bill details...</p>;
   if (!bill) return <p>No bill data found.</p>;
-
-  const {
-    clinic,
-    supplier_name,
-    invoice_number,
-    bill_number,
-    bill_date,
-    status,
-    items,
-  } = bill;
+  const typedBill = bill as Bill;
+  const { clinic, supplier_name, invoice_number, bill_number, bill_date, status, items } = typedBill;
+  // const {
+  //   clinic,
+  //   supplier_name,
+  //   invoice_number,
+  //   bill_number,
+  //   bill_date,
+  //   status,
+  //   items,
+  // } = bill;
 
   // ✅ Download XLS function with bold headers and frozen top row
   const downloadXLS = () => {
     if (!bill) return;
 
-    const data = items.map((item) => ({
-      "Invoice No": invoice_number,
-      "Bill Number": bill_number,
-      "Bill Date": new Date(bill_date).toLocaleDateString(),
-      Supplier: supplier_name,
-      Clinic: bill.clinic_name || "N/A",
+    const data = typedBill.items.map((item: BillItem) => ({
+      "Invoice No": typedBill.invoice_number,
+      "Bill Number": typedBill.bill_number,
+      "Bill Date": new Date(typedBill.bill_date).toLocaleDateString(),
+      Supplier: typedBill.supplier_name,
+      Clinic: typedBill.clinic_name || "N/A",
       "Item Name": item.item_name,
       Quantity: item.quantity,
       "Unit Price": item.unit_price,
       Total: item.quantity * item.unit_price,
     }));
-
+  
     const ws = XLSX.utils.json_to_sheet(data, {
       header: [
         "Invoice No",
@@ -196,15 +216,13 @@ const ViewMaterialPurchaseBill = () => {
                         </thead>
                         <tbody>
                           {items && items.length > 0 ? (
-                            items.map((item: any, index: number) => (
+                            typedBill.items.map((item: BillItem, index: number) => (
                               <tr key={index}>
                                 <td>{(index + 1).toString().padStart(2, "0")}</td>
                                 <td>{item.item_name}</td>
                                 <td>{item.quantity}</td>
                                 <td>{item.unit_price}</td>
-                                <td>
-                                  {(item.quantity * item.unit_price).toFixed(2)}
-                                </td>
+                                <td>{(item.quantity * item.unit_price).toFixed(2)}</td>
                               </tr>
                             ))
                           ) : (
