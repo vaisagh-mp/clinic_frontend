@@ -73,8 +73,10 @@ const PharmacyBills = () => {
         const formattedBills = bills.map((b: any) => ({
           ...b,
           total_amount: parseFloat(b.total_amount) || 0,
-          patient_name: b.patient || "N/A",
+          patient_name: b.patient?.name || "N/A",  // 👈 use ?.name
+          balance_due: b.items?.reduce((sum: number, item: any) => sum + (item.balance_due || 0), 0) || 0,
         }));
+
 
         setData(formattedBills);
       } catch (error) {
@@ -134,6 +136,22 @@ const PharmacyBills = () => {
       dataIndex: "total_amount",
       render: (total_amount: number) => `₹${total_amount.toFixed(2)}`,
       sorter: (a: any, b: any) => a.total_amount - b.total_amount,
+    },
+    {
+      title: "Balance Due",
+      dataIndex: "balance_due",
+      render: (balance_due: number) => `₹${balance_due.toFixed(2)}`,
+      sorter: (a: any, b: any) => a.balance_due - b.balance_due,
+    },
+    {
+      title: "Paid Amount",
+      dataIndex: "paid_amount",
+      render: (_: any, record: any) => {
+        const paid_amount = record.total_amount - record.balance_due;
+        return `₹${paid_amount.toFixed(2)}`;
+      },
+      sorter: (a: any, b: any) =>
+        (a.total_amount - a.balance_due) - (b.total_amount - b.balance_due),
     },
     {
       title: "Status",

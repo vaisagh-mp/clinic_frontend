@@ -105,7 +105,7 @@ const MedicineList = () => {
     {
       title: "Unit Price",
       dataIndex: "unit_price",
-      render: (price: string) => `$${price}`,
+      render: (price: string) => `₹${price}`,
       sorter: (a: any, b: any) => parseFloat(a.unit_price) - parseFloat(b.unit_price),
     },
     { title: "Expiry Date", dataIndex: "expiry_date", sorter: (a: any, b: any) => a.expiry_date.localeCompare(b.expiry_date) },

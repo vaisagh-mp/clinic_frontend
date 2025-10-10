@@ -61,7 +61,7 @@ const OnlineConsultations = () => {
     advices: "",
     investigations: "",
     allergies: "",
-    next_consultation: "",
+    next_consultation: null,
     empty_stomach_required: false,
   });
 
@@ -193,7 +193,7 @@ const OnlineConsultations = () => {
           advices: appt.advices?.length ? appt.advices : [""],
           investigations: appt.investigations?.length ? appt.investigations : [""],
           follow_ups: appt.follow_ups?.length ? appt.follow_ups : [""],
-          next_consultation: appt.next_consultation || "",
+          next_consultation: appt.next_consultation || null,
           empty_stomach_required: appt.empty_stomach_required || false,
           select_option: appt.select_option || "",
         });
@@ -224,15 +224,13 @@ const OnlineConsultations = () => {
   }, [appointmentId, navigate]);
 
   // -------------------- Form Handlers --------------------
-  const handleChange = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
   const { name, value, type } = e.target;
 
-  // 🛠️ Type guard: Only use 'checked' for checkboxes
-  const newValue =
-    type === "checkbox"
-      ? (e.target as HTMLInputElement).checked
+  const newValue = type === "checkbox" 
+    ? (e.target as HTMLInputElement).checked 
+    : value === "" && name === "next_consultation" 
+      ? null // ✅ convert empty string to null
       : value;
 
   setFormData((prev: any) => ({
@@ -240,6 +238,7 @@ const OnlineConsultations = () => {
     [name]: newValue,
   }));
 };
+
 
 
   const handleSubmit = async () => {
@@ -313,6 +312,13 @@ const OnlineConsultations = () => {
                     <span className="text-body"> Reason: </span>
                     {appointmentData.reason || ""}
                   </p>
+
+                  {appointmentData.allergies && appointmentData.allergies.trim() !== "" && (
+                      <p className="text-danger m-0">
+                        <span className="fw-medium">Allergies:</span>{" "}
+                        {appointmentData.allergies}
+                      </p>
+                    )}
                 </div>
               </div>
               <div className="col-lg-6">
@@ -405,6 +411,27 @@ const OnlineConsultations = () => {
 />
           </div>
         </div>
+
+        {/* Allergies Section */}
+<div className="card rounded-0 mb-3">
+  <div className="card-header">
+    <h5 className="m-0 fw-bold"> Allergies </h5>
+  </div>
+  <div className="card-body">
+    <textarea
+      className="form-control"
+      name="allergies"
+      placeholder="Mention any drug, food, or environmental allergies"
+      value={formData.allergies || ""}
+      onChange={handleChange}
+      rows={3}
+    />
+    <small className="text-muted">
+      Example: Penicillin, Peanuts, Dust allergy, etc.
+    </small>
+  </div>
+</div>
+
 
         <div className="card rounded-0 mb-3">
           <div className="card-header">

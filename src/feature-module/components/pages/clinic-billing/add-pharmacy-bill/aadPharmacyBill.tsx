@@ -10,6 +10,7 @@ interface Item {
   medicine?: number | null;
   procedure?: number | null;
   quantity: number;
+  procedure_payments?: { amount_paid: number; notes: string }[];
 }
 
 interface Patient {
@@ -28,13 +29,20 @@ interface Procedure {
   name: string;
 }
 
+interface FormData {
+  patient_id: string;
+  bill_date: string;
+  status: string;
+  items: Item[];
+}
+
 const AddPharmacyBill = () => {
-  const [formData, setFormData] = useState({
-    patient_id: "",
-    bill_date: "",
-    status: "PENDING",
-    items: [{ item_type: "", medicine: null, procedure: null, quantity: 1 }],
-  });
+  const [formData, setFormData] = useState<FormData>({
+  patient_id: "",
+  bill_date: "",
+  status: "PENDING",
+  items: [{ item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] }],
+});
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -49,14 +57,11 @@ const AddPharmacyBill = () => {
         const token = localStorage.getItem("access_token");
         if (!token) throw new Error("No access token found");
 
-        // Fetch clinic patients
         const patientRes = await axios.get("http://3.109.62.26/api/clinic/patients/", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        // If paginated response:
         setPatients(patientRes.data.results || patientRes.data);
 
-        // Fetch medicines and procedures
         const [medRes, procRes] = await Promise.all([
           axios.get("http://3.109.62.26/api/billing/medicines/", { headers: { Authorization: `Bearer ${token}` } }),
           axios.get("http://3.109.62.26/api/billing/procedures/", { headers: { Authorization: `Bearer ${token}` } }),
@@ -94,6 +99,7 @@ const AddPharmacyBill = () => {
     if (name === "item_type") {
       updated[index].medicine = null;
       updated[index].procedure = null;
+      updated[index].procedure_payments = [];
     }
 
     setFormData({ ...formData, items: updated });
@@ -102,7 +108,7 @@ const AddPharmacyBill = () => {
   const addItemRow = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { item_type: "", medicine: null, procedure: null, quantity: 1 }],
+      items: [...formData.items, { item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] }],
     });
   };
 
@@ -110,6 +116,43 @@ const AddPharmacyBill = () => {
     const updated = [...formData.items];
     updated.splice(index, 1);
     setFormData({ ...formData, items: updated });
+  };
+
+  // Procedure Payments Handlers
+  const handleProcedurePaymentChange = (
+  itemIndex: number,
+  paymentIndex: number,
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  const { name, value } = e.target;
+  const updatedItems = [...formData.items];
+
+  if (!updatedItems[itemIndex].procedure_payments) {
+    updatedItems[itemIndex].procedure_payments = [];
+  }
+
+  updatedItems[itemIndex].procedure_payments![paymentIndex] = {
+    ...updatedItems[itemIndex].procedure_payments![paymentIndex],
+    [name]: name === "amount_paid" ? Number(value) : value,
+  };
+
+  setFormData({ ...formData, items: updatedItems });
+};
+
+
+  const addProcedurePayment = (itemIndex: number) => {
+    const updatedItems = [...formData.items];
+    if (!updatedItems[itemIndex].procedure_payments) {
+      updatedItems[itemIndex].procedure_payments = [];
+    }
+    updatedItems[itemIndex].procedure_payments!.push({ amount_paid: 0, notes: "" });
+    setFormData({ ...formData, items: updatedItems });
+  };
+
+  const removeProcedurePayment = (itemIndex: number, paymentIndex: number) => {
+    const updatedItems = [...formData.items];
+    updatedItems[itemIndex].procedure_payments!.splice(paymentIndex, 1);
+    setFormData({ ...formData, items: updatedItems });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,10 +164,18 @@ const AddPharmacyBill = () => {
       if (!token) throw new Error("No access token found");
 
       const cleanedItems = formData.items.map((item) => {
+        const base = { item_type: item.item_type, quantity: item.quantity };
+
         if (item.item_type === "PROCEDURE") {
-          return { item_type: "PROCEDURE", procedure: item.procedure, procedure_id: item.procedure, quantity: item.quantity };
+          return {
+            ...base,
+            procedure: item.procedure,
+            procedure_id: item.procedure,
+            procedure_payments: item.procedure_payments || [],
+          };
         }
-        return { item_type: "MEDICINE", medicine: item.medicine, medicine_id: item.medicine, quantity: item.quantity };
+
+        return { ...base, medicine: item.medicine, medicine_id: item.medicine };
       });
 
       const payload = { ...formData, items: cleanedItems };
@@ -294,11 +345,63 @@ const AddPharmacyBill = () => {
                             />
                           </div>
                         </div>
+
+                        {/* Procedure Payments Section */}
+                        {item.item_type === "PROCEDURE" && item.procedure && (
+                          <div className="border p-2 mb-3 rounded bg-light">
+                            <h6 className="fw-bold">Procedure Payments</h6>
+                            {item.procedure_payments?.map((payment, pIndex) => (
+                              <div key={pIndex} className="d-flex gap-2 align-items-end mb-2">
+                                <div className="col">
+                                  <label className="form-label">Amount Paid</label>
+                                  <input
+                                    type="number"
+                                    name="amount_paid"
+                                    className="form-control"
+                                    value={payment.amount_paid}
+                                    min={0}
+                                    onChange={(e) => handleProcedurePaymentChange(index, pIndex, e)}
+                                  />
+                                </div>
+                                <div className="col">
+                                  <label className="form-label">Notes</label>
+                                  <input
+                                    type="text"
+                                    name="notes"
+                                    className="form-control"
+                                    value={payment.notes}
+                                    onChange={(e) => handleProcedurePaymentChange(index, pIndex, e)}
+                                  />
+                                </div>
+                                <div>
+                                  <button
+                                    type="button"
+                                    className="btn btn-danger btn-sm"
+                                    onClick={() => removeProcedurePayment(index, pIndex)}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              className="btn btn-success btn-sm mt-1"
+                              onClick={() => addProcedurePayment(index)}
+                            >
+                              + Add Payment
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
 
                     <div className="d-flex justify-content-end gap-2">
-                      <button type="button" className="btn btn-light" onClick={() => navigate(all_routes.clinicpharmacybillList)}>
+                      <button
+                        type="button"
+                        className="btn btn-light"
+                        onClick={() => navigate(all_routes.clinicpharmacybillList)}
+                      >
                         Cancel
                       </button>
                       <button type="submit" className="btn btn-primary" disabled={loading}>

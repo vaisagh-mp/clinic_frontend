@@ -25,6 +25,7 @@ interface BillItem {
   quantity: number;
   unit_price: string; // string from API
   subtotal: string;   // string from API
+  balance_due: number;
 }
 
 interface BillData {
@@ -37,6 +38,8 @@ interface BillData {
   total_amount: string; // string from API
   doctor_name: string;
   items: BillItem[];
+  balance_due?: string;
+  paid_amount?: string;
 }
 
 const ViewPharmacyBill = () => {
@@ -72,6 +75,12 @@ const ViewPharmacyBill = () => {
     return <div className="text-center mt-5">Loading...</div>;
   }
 
+  const totalBalanceDue = billData.items?.reduce(
+    (sum, item) => sum + (item.balance_due || 0),
+    0
+  );
+
+
   const downloadXLS = () => {
     const data = billData.items.map((item) => ({
       "Bill Number": billData.bill_number,
@@ -98,7 +107,7 @@ const ViewPharmacyBill = () => {
         "Total",
       ],
     });
-
+    
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Pharmacy Bill");
 
@@ -270,20 +279,24 @@ const printBill = async () => {
                         <h6 className="fs-14 fw-semibold text-dark">₹{parseFloat(billData.total_amount).toFixed(2)}</h6>
                       </div>
                       <div className="d-flex align-items-center justify-content-between mb-2">
-                        <h6 className="fs-14 fw-medium text-body">CGST (5%)</h6>
-                        <h6 className="fs-14 fw-semibold text-dark">₹0.00</h6>
+                        <h6 className="fs-14 fw-medium text-body">Paid Amount</h6>
+                        <h6 className="fs-14 fw-semibold">
+                          ₹{(parseFloat(billData.total_amount) - totalBalanceDue).toFixed(2)}
+                        </h6>
                       </div>
                       <div className="d-flex align-items-center justify-content-between mb-2">
-                        <h6 className="fs-14 fw-medium text-body">SGST (5%)</h6>
-                        <h6 className="fs-14 fw-semibold text-dark">₹0.00</h6>
-                      </div>
+                        <h6 className="fs-14 fw-medium text-body">Balance Due</h6>
+                        <h6 className="fs-14 fw-semibold">
+                          ₹{totalBalanceDue.toFixed(2)}
+                        </h6>
+                      </div>                  
                       <div className="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
                         <h6 className="fs-14 fw-medium text-body">Discount</h6>
-                        <h6 className="fs-14 fw-semibold text-danger">₹0.00</h6>
+                        <h6 className="fs-14 fw-semibold">₹0.00</h6>
                       </div>
                       <div className="d-flex align-items-center justify-content-between mb-2">
                         <h6 className="fs-18 ">Total (INR)</h6>
-                        <h6 className="fs-18 ">₹{parseFloat(billData.total_amount).toFixed(2)}</h6>
+                        <h6 className="fs-18 ">₹{parseFloat(billData.paid_amount || "0").toFixed(2)}</h6>
                       </div>
                     </div>
                   </div>

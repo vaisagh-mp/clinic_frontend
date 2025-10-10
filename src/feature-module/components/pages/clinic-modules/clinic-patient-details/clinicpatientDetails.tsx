@@ -22,6 +22,7 @@ interface Consultation {
   temperature?: string;
   respiratory_rate?: string;
   weight?: string;
+  allergies: string;
   // add other fields if needed
 }
 
@@ -41,6 +42,7 @@ interface Patient {
   name: string;
   dob: string;
   bloodGroup: string;
+  allergies: string;
   gender: string;
   email: string;
   phone: string;
@@ -77,6 +79,7 @@ const ClinicpatientDetails = () => {
     phone: "N/A",
     address: "N/A",
     lastVisited: "N/A",
+    allergies: "N/A",
     vitalSigns: {
       bloodPressure: "N/A",
       heartRate: "N/A",
@@ -191,6 +194,7 @@ const ClinicpatientDetails = () => {
         phone: data.phone_number || "N/A",
         address: data.address || "N/A",
         lastVisited,
+        allergies: latestConsultation?.allergies || "N/A",
         vitalSigns: latestConsultation
           ? {
               bloodPressure: latestConsultation.blood_pressure || "N/A",
@@ -259,6 +263,12 @@ const ClinicpatientDetails = () => {
                     </Link>
                   </h5>
                   <p className="mb-3">{patient.address}</p>
+                  {patient.allergies && patient.allergies !== "N/A" && (
+                    <p className="mb-3">
+                      <span className="text-body">Allergies: </span>
+                      {patient.allergies}
+                    </p>
+                  )}
                   <div className="d-flex align-items-center flex-wrap">
                     <p className="mb-0 d-inline-flex align-items-center">
                       <i className="ti ti-phone me-1 text-dark" />

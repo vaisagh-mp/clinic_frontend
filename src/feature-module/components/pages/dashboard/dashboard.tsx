@@ -68,7 +68,8 @@ const Dashboard = () => {
   });
   const series = [{ name: "Data", data: [40, 15, 60, 15, 90, 20, 70] }];
 
-  const allDoctors = (dashboardData?.clinics?.map((c: any) => c.doctors).flat() || []).slice(0, 3);
+  const allDoctors = (dashboardData?.doctors || []).slice(0, 3);
+  const displayedPatients = (dashboardData?.patients || []).slice(0, 2);
   const limitedAppointments = appointments.slice(0, 5); // 👈 Limit to 5 rows
 
   return (
@@ -188,36 +189,31 @@ const Dashboard = () => {
               <div className="card-body">
                 <div className="row row-gap-3">
                   {allDoctors.map((doctor: any, idx: number) => (
-                    <div className="col-md-4" key={idx}>
-                      <div className="border shadow-sm p-3 rounded-2">
-                        <div className="d-flex align-items-center mb-3">
-                          <Link to={`${all_routes.doctorsDetails}/${doctor.id}`} className="avatar me-2 flex-shrink-0">
-                            <ImageWithBasePath
-  src={
-    doctor.profile_image
-      ? `http://3.109.62.26${doctor.profile_image}`
-      : "assets/img/doctors/doctor-01.jpg"
-  }
-  alt={doctor.name || "Doctor"}
-  className="rounded-circle"
-/>
-
-                          </Link>
-                          <div>
-                            <h6 className="fs-14 mb-1 text-truncate">
-                              <Link to={`${all_routes.doctorsDetails}/${doctor.id}`} className="fw-semibold">
-                                {doctor.name}
-                              </Link>
-                            </h6>
-                            <p className="mb-0 fs-13">{doctor.specialization}</p>
+                      <div className="col-md-4" key={idx}>
+                        <div className="border shadow-sm p-3 rounded-2">
+                          <div className="d-flex align-items-center mb-3">
+                            <Link to={`${all_routes.doctorsDetails}/${doctor.id}`} className="avatar me-2 flex-shrink-0">
+                              <ImageWithBasePath
+                                src={doctor.profile_image ? `http://3.109.62.26${doctor.profile_image}` : "assets/img/doctors/doctor-01.jpg"}
+                                alt={doctor.name || "Doctor"}
+                                className="rounded-circle"
+                              />
+                            </Link>
+                            <div>
+                              <h6 className="fs-14 mb-1 text-truncate">
+                                <Link to={`${all_routes.doctorsDetails}/${doctor.id}`} className="fw-semibold">
+                                  {doctor.name}
+                                </Link>
+                              </h6>
+                              <p className="mb-0 fs-13">{doctor.specialization}</p>
+                            </div>
                           </div>
+                          <p className="mb-0">
+                            <span className="text-dark fw-semibold">{doctor.bookings || 0}</span> Bookings
+                          </p>
                         </div>
-                        <p className="mb-0">
-                          <span className="text-dark fw-semibold">{doctor.bookings || 0}</span> Bookings
-                        </p>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             </div>
@@ -231,32 +227,33 @@ const Dashboard = () => {
                 <Link to={all_routes.patients} className="btn fw-normal btn-outline-white">View All</Link>
               </div>
               <div className="card-body">
-                {patients.slice(0, 2).map((patient: any, idx: number) => (
-                  <div className="d-flex justify-content-between align-items-center mb-3" key={idx}>
-                    <div className="d-flex align-items-center">
-                      <Link to={`${all_routes.patientDetails}/${patient.id}`} className="avatar me-2 flex-shrink-0">
-                        <ImageWithBasePath
-                          src={patient.profile_image || "assets/img/profiles/avatar-02.jpg"}
-                          alt={patient.first_name}
-                          className="rounded-circle"
-                        />
-                      </Link>
-                      <div>
-                        <h6 className="fs-14 mb-1 text-truncate">
-                          <Link to={`${all_routes.patientDetails}/${patient.id}`} className="fw-medium">
-                            {patient.first_name} {patient.last_name}
-                          </Link>
-                        </h6>
-                        <p className="mb-0 fs-13 text-truncate">
-                          Age: {patient.age || "N/A"} | Blood Group: {patient.blood_group || "N/A"}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="badge fw-medium badge-soft-primary border border-primary flex-shrink-0">
-                      {patient.appointments_count || 0} Appointments
-                    </span>
-                  </div>
-                ))}
+               {displayedPatients.map((patient: any, idx: number) => (
+  <div className="d-flex justify-content-between align-items-center mb-3" key={idx}>
+    <div className="d-flex align-items-center">
+      <Link to={`${all_routes.patientDetails}/${patient.id}`} className="avatar me-2 flex-shrink-0">
+        <ImageWithBasePath
+          src={patient.profile_image || "assets/img/profiles/avatar-02.jpg"}
+          alt={patient.first_name}
+          className="rounded-circle"
+        />
+      </Link>
+      <div>
+        <h6 className="fs-14 mb-1 text-truncate">
+          <Link to={`${all_routes.patientDetails}/${patient.id}`} className="fw-medium">
+            {patient.first_name} {patient.last_name}
+          </Link>
+        </h6>
+        <p className="mb-0 fs-13 text-truncate">
+          Age: {patient.age || "N/A"} | {patient.blood_group || "N/A"}
+        </p>
+      </div>
+    </div>
+    <span className="badge fw-medium badge-soft-primary border border-primary flex-shrink-0">
+      {patient.appointments_count || 0} Appointments
+    </span>
+  </div>
+))}
+
               </div>
             </div>
           </div>

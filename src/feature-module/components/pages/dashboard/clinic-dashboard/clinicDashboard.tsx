@@ -274,7 +274,7 @@ const ClinicDashboard = () => {
             <div className="card shadow-sm flex-fill w-100">
               <div className="card-header d-flex align-items-center justify-content-between">
                 <h5 className="fw-bold mb-0">All Appointments</h5>
-                <Link to={all_routes.appointments} className="btn fw-normal btn-outline-white">
+                <Link to={all_routes.clinicappointments} className="btn fw-normal btn-outline-white">
                   View All
                 </Link>
               </div>
