@@ -1,10 +1,11 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { all_routes } from "../../../../routes/all_routes";
 import { useState } from "react";
 import axios from "axios";
 
 const AddClinic = () => {
   const token = localStorage.getItem("access_token");
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -43,7 +44,6 @@ const AddClinic = () => {
 
     setLoading(true);
     try {
-      // send formData directly, type and status are already strings
       const payload = { ...formData };
 
       const response = await axios.post(
@@ -59,6 +59,10 @@ const AddClinic = () => {
 
       console.log("Clinic added successfully:", response.data);
       alert("Clinic added successfully!");
+
+      // ✅ Redirect to Clinic List after success
+      navigate(all_routes.clinicList);
+
     } catch (err: any) {
       console.error("Error adding clinic: ", err);
       alert(
