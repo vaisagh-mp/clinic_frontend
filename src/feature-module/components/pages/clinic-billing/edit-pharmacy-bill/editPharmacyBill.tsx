@@ -7,9 +7,11 @@ import Sidebar from "../../../../../core/common/sidebar/sidebarAdmin";
 
 interface Item {
   item_type: string;
-  medicine?: number | null;
-  procedure?: number | null;
+  medicine?: number | string | null;
+  procedure?: number | string | null;
   quantity: number;
+  unit_price?: number;
+  procedure_payments?: { amount_paid: number; notes: string }[];
 }
 
 interface Patient {
@@ -21,11 +23,13 @@ interface Patient {
 interface Medicine {
   id: number;
   name: string;
+  unit_price: string;
 }
 
 interface Procedure {
   id: number;
   name: string;
+  price: number;
 }
 
 interface FormData {
@@ -40,17 +44,17 @@ const EditPharmacyBill = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<FormData>({
-  patient_id: "",
-  bill_date: "",
-  status: "PENDING",
-  items: [{ item_type: "", medicine: null, procedure: null, quantity: 1 }],
-});
+    patient_id: "",
+    bill_date: "",
+    status: "PENDING",
+    items: [{ item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] }],
+  });
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [procedures, setProcedures] = useState<Procedure[]>([]);
-  const [loadingPatients, setLoadingPatients] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingPatients, setLoadingPatients] = useState(false);
 
   // Fetch Patients, Medicines, Procedures
   useEffect(() => {
@@ -61,18 +65,12 @@ const EditPharmacyBill = () => {
 
         setLoadingPatients(true);
         const [patientRes, medRes, procRes] = await Promise.all([
-          axios.get("http://3.109.62.26/api/clinic/patients/", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://3.109.62.26/api/billing/medicines/", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://3.109.62.26/api/billing/procedures/", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+          axios.get("http://3.109.62.26/api/clinic/patients/", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get("http://3.109.62.26/api/billing/medicines/", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get("http://3.109.62.26/api/billing/procedures/", { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
-        setPatients(patientRes.data);
+        setPatients(patientRes.data.results || patientRes.data);
         setMedicines(medRes.data);
         setProcedures(procRes.data);
       } catch (err: any) {
@@ -84,7 +82,7 @@ const EditPharmacyBill = () => {
     fetchData();
   }, []);
 
-  // Fetch existing pharmacy bill AFTER medicines/procedures are loaded
+  // Fetch existing bill
   useEffect(() => {
     if (!id || medicines.length === 0 || procedures.length === 0 || patients.length === 0) return;
 
@@ -93,54 +91,41 @@ const EditPharmacyBill = () => {
         const token = localStorage.getItem("access_token");
         if (!token) throw new Error("No access token found");
 
-        const res = await axios.get(
-          `http://3.109.62.26/api/billing/clinic/pharmacy-bill/${id}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const res = await axios.get(`http://3.109.62.26/api/billing/clinic/pharmacy-bill/${id}/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         const bill = res.data;
 
-        // Map patient name to ID
-        const patientObj = patients.find(
-          (p) => `${p.first_name} ${p.last_name || ""}`.trim() === bill.patient
-        );
+        const patientObj = patients.find((p) => `${p.first_name} ${p.last_name || ""}`.trim() === bill.patient.name);
 
-        // Map items robustly
         const mappedItems: Item[] = bill.items.map((item: any) => {
           if (item.item_type === "MEDICINE") {
-            let medId: number | null = null;
-            if (typeof item.medicine === "number") {
-              medId = item.medicine;
-            } else if (typeof item.medicine === "string") {
-              const medObj = medicines.find(
-                (m) => m.name.toLowerCase().trim() === item.medicine.toLowerCase().trim()
-              );
-              medId = medObj ? medObj.id : null;
-            }
+            // Map medicine by ID if exists, otherwise keep name
+            const medObj = medicines.find(
+              (m) => m.name.toLowerCase().trim() === (typeof item.medicine === "string" ? item.medicine.toLowerCase().trim() : "")
+            );
             return {
               item_type: "MEDICINE",
-              medicine: medId,
+              medicine: medObj ? medObj.id : item.medicine, // keep name if not in list
               procedure: null,
               quantity: item.quantity || 1,
+              unit_price: item.unit_price ? Number(item.unit_price) : 0,
             };
           } else if (item.item_type === "PROCEDURE") {
-            let procId: number | null = null;
-            if (typeof item.procedure === "number") {
-              procId = item.procedure;
-            } else if (typeof item.procedure === "string") {
-              const procObj = procedures.find(
-                (p) => p.name.toLowerCase().trim() === item.procedure.toLowerCase().trim()
-              );
-              procId = procObj ? procObj.id : null;
-            }
+            const procObj = procedures.find(
+              (p) => p.name.toLowerCase().trim() === (typeof item.procedure === "string" ? item.procedure.toLowerCase().trim() : "")
+            );
             return {
               item_type: "PROCEDURE",
-              procedure: procId,
+              procedure: procObj ? procObj.id : item.procedure, // keep name if not in list
               medicine: null,
               quantity: item.quantity || 1,
+              unit_price: item.unit_price ? Number(item.unit_price) : 0,
+              procedure_payments: item.procedure_payments || [],
             };
           } else {
-            return { item_type: "", medicine: null, procedure: null, quantity: 1 };
+            return { item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] };
           }
         });
 
@@ -148,7 +133,7 @@ const EditPharmacyBill = () => {
           patient_id: patientObj?.id?.toString() || "",
           bill_date: bill.bill_date,
           status: bill.status,
-          items: mappedItems.length > 0 ? mappedItems : [{ item_type: "", medicine: null, procedure: null, quantity: 1 }],
+          items: mappedItems.length > 0 ? mappedItems : [{ item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] }],
         });
       } catch (err: any) {
         console.error("Error fetching bill:", err.response?.data || err.message);
@@ -158,7 +143,26 @@ const EditPharmacyBill = () => {
     fetchBill();
   }, [id, medicines, procedures, patients]);
 
-  // Handle changes
+  // Subtotal calculation
+  const calculateSubtotal = (item: Item) => {
+    if (item.item_type === "MEDICINE") {
+      if (typeof item.medicine === "number") {
+        const med = medicines.find((m) => m.id === item.medicine);
+        return med ? Number(med.unit_price) * item.quantity : item.unit_price || 0;
+      }
+      return item.unit_price || 0;
+    }
+    if (item.item_type === "PROCEDURE") {
+      if (typeof item.procedure === "number") {
+        const proc = procedures.find((p) => p.id === item.procedure);
+        return proc ? Number(proc.price) * item.quantity : item.unit_price || 0;
+      }
+      return item.unit_price || 0;
+    }
+    return 0;
+  };
+
+  // Handlers
   const handleBillChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -167,29 +171,23 @@ const EditPharmacyBill = () => {
   const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     const updated = [...formData.items];
-
     updated[index] = {
       ...updated[index],
       [name]:
-        name === "quantity"
-          ? Number(value)
-          : name === "medicine" || name === "procedure"
-          ? Number(value)
-          : value,
+        name === "quantity" ? Number(value) : name === "medicine" || name === "procedure" ? Number(value) || value : value,
     };
-
     if (name === "item_type") {
       updated[index].medicine = null;
       updated[index].procedure = null;
+      updated[index].procedure_payments = [];
     }
-
     setFormData({ ...formData, items: updated });
   };
 
   const addItemRow = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { item_type: "", medicine: null, procedure: null, quantity: 1 }],
+      items: [...formData.items, { item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] }],
     });
   };
 
@@ -199,7 +197,31 @@ const EditPharmacyBill = () => {
     setFormData({ ...formData, items: updated });
   };
 
-  // Submit form
+  const handleProcedurePaymentChange = (itemIndex: number, paymentIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const updatedItems = [...formData.items];
+    if (!updatedItems[itemIndex].procedure_payments) updatedItems[itemIndex].procedure_payments = [];
+    updatedItems[itemIndex].procedure_payments![paymentIndex] = {
+      ...updatedItems[itemIndex].procedure_payments![paymentIndex],
+      [name]: name === "amount_paid" ? Number(value) : value,
+    };
+    setFormData({ ...formData, items: updatedItems });
+  };
+
+  const addProcedurePayment = (itemIndex: number) => {
+    const updatedItems = [...formData.items];
+    if (!updatedItems[itemIndex].procedure_payments) updatedItems[itemIndex].procedure_payments = [];
+    updatedItems[itemIndex].procedure_payments!.push({ amount_paid: 0, notes: "" });
+    setFormData({ ...formData, items: updatedItems });
+  };
+
+  const removeProcedurePayment = (itemIndex: number, paymentIndex: number) => {
+    const updatedItems = [...formData.items];
+    updatedItems[itemIndex].procedure_payments!.splice(paymentIndex, 1);
+    setFormData({ ...formData, items: updatedItems });
+  };
+
+  // Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -208,36 +230,15 @@ const EditPharmacyBill = () => {
       const token = localStorage.getItem("access_token");
       if (!token) throw new Error("No access token found");
 
-      const cleanedItems = formData.items.map((item) => {
-        if (item.item_type === "PROCEDURE") {
-          return {
-            item_type: "PROCEDURE",
-            procedure_id: item.procedure,
-            quantity: item.quantity,
-          };
-        }
-        return {
-          item_type: "MEDICINE",
-          medicine_id: item.medicine,
-          quantity: item.quantity,
-        };
-      });
-
-      const payload = { ...formData, items: cleanedItems };
-
       await axios.put(
         `http://3.109.62.26/api/billing/clinic/pharmacy-bill/${id}/`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        }
+        { ...formData },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      alert("Pharmacy Bill updated successfully!");
       navigate(all_routes.clinicpharmacybillList);
     } catch (err: any) {
-      console.error("Error updating pharmacy bill:", err.response?.data || err.message);
-      alert(err.response?.data?.detail || "Failed to update bill");
+      console.error("Error updating bill:", err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
@@ -276,13 +277,10 @@ const EditPharmacyBill = () => {
                           value={formData.patient_id}
                           onChange={handleBillChange}
                           required
-                          disabled={loadingPatients}
                         >
-                          <option value="">
-                            {loadingPatients ? "Loading..." : "Select Patient"}
-                          </option>
+                          <option value="">Select Patient</option>
                           {patients.map((p) => (
-                            <option key={p.id} value={p.id.toString()}>
+                            <option key={p.id} value={p.id}>
                               {`${p.first_name} ${p.last_name || ""}`.trim()}
                             </option>
                           ))}
@@ -319,24 +317,13 @@ const EditPharmacyBill = () => {
                       </div>
                     </div>
 
-                    {/* Items */}
-                    <div className="border-bottom d-flex align-items-center justify-content-between pb-2 mb-3">
-                      <h6 className="fw-bold">Items</h6>
-                      <button type="button" className="btn btn-sm btn-success" onClick={addItemRow}>
-                        + Add Item
-                      </button>
-                    </div>
-
+                    {/* Items Section */}
                     {formData.items.map((item, index) => (
                       <div key={index} className="border p-3 mb-3 rounded bg-light">
                         <div className="d-flex justify-content-between mb-2">
                           <h6 className="fw-bold">Item {index + 1}</h6>
                           {formData.items.length > 1 && (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-danger"
-                              onClick={() => removeItemRow(index)}
-                            >
+                            <button type="button" className="btn btn-sm btn-danger" onClick={() => removeItemRow(index)}>
                               Remove
                             </button>
                           )}
@@ -344,7 +331,7 @@ const EditPharmacyBill = () => {
 
                         <div className="row">
                           {/* Item Type */}
-                          <div className="col-lg-4 mb-3">
+                          <div className="col-lg-3 mb-3">
                             <label className="form-label">Item Type *</label>
                             <select
                               name="item_type"
@@ -359,19 +346,15 @@ const EditPharmacyBill = () => {
                             </select>
                           </div>
 
-                          {/* Medicine / Procedure */}
-                          <div className="col-lg-4 mb-3">
+                          {/* Medicine or Procedure */}
+                          <div className="col-lg-3 mb-3">
                             <label className="form-label">
                               {item.item_type === "PROCEDURE" ? "Procedure" : "Medicine"} *
                             </label>
                             <select
                               name={item.item_type === "PROCEDURE" ? "procedure" : "medicine"}
                               className="form-select"
-                              value={
-                                item.item_type === "PROCEDURE"
-                                  ? item.procedure?.toString() || ""
-                                  : item.medicine?.toString() || ""
-                              }
+                              value={item.item_type === "PROCEDURE" ? item.procedure || "" : item.medicine || ""}
                               onChange={(e) => handleItemChange(index, e)}
                               required
                               disabled={!item.item_type}
@@ -380,7 +363,7 @@ const EditPharmacyBill = () => {
                                 {item.item_type === "PROCEDURE" ? "Select Procedure" : "Select Medicine"}
                               </option>
                               {(item.item_type === "PROCEDURE" ? procedures : medicines).map((opt) => (
-                                <option key={opt.id} value={opt.id.toString()}>
+                                <option key={opt.id} value={opt.id}>
                                   {opt.name}
                                 </option>
                               ))}
@@ -388,7 +371,7 @@ const EditPharmacyBill = () => {
                           </div>
 
                           {/* Quantity */}
-                          <div className="col-lg-4 mb-3">
+                          <div className="col-lg-3 mb-3">
                             <label className="form-label">Quantity *</label>
                             <input
                               type="number"
@@ -400,21 +383,66 @@ const EditPharmacyBill = () => {
                               required
                             />
                           </div>
+
+                          {/* Subtotal */}
+                          <div className="col-lg-3 mb-3">
+                            <label className="form-label">Subtotal</label>
+                            <input type="number" className="form-control" value={calculateSubtotal(item)} readOnly />
+                          </div>
                         </div>
+
+                        {/* Procedure Payments */}
+                        {item.item_type === "PROCEDURE" && item.procedure && (
+                          <div className="border p-2 mb-3 rounded bg-light">
+                            <h6 className="fw-bold">Procedure Payments</h6>
+                            {item.procedure_payments?.map((payment, pIndex) => (
+                              <div key={pIndex} className="d-flex gap-2 align-items-end mb-2">
+                                <div className="col">
+                                  <label className="form-label">Amount Paid</label>
+                                  <input
+                                    type="number"
+                                    name="amount_paid"
+                                    className="form-control"
+                                    value={payment.amount_paid}
+                                    min={0}
+                                    onChange={(e) => handleProcedurePaymentChange(index, pIndex, e)}
+                                  />
+                                </div>
+                                <div className="col">
+                                  <label className="form-label">Notes</label>
+                                  <input
+                                    type="text"
+                                    name="notes"
+                                    className="form-control"
+                                    value={payment.notes}
+                                    onChange={(e) => handleProcedurePaymentChange(index, pIndex, e)}
+                                  />
+                                </div>
+                                <div>
+                                  <button
+                                    type="button"
+                                    className="btn btn-danger btn-sm"
+                                    onClick={() => removeProcedurePayment(index, pIndex)}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                            <button type="button" className="btn btn-success btn-sm mt-1" onClick={() => addProcedurePayment(index)}>
+                              + Add Payment
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
 
-                    {/* Buttons */}
                     <div className="d-flex justify-content-end gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-light"
-                        onClick={() => navigate(all_routes.clinicpharmacybillList)}
-                      >
+                      <button type="button" className="btn btn-light" onClick={() => navigate(all_routes.clinicpharmacybillList)}>
                         Cancel
                       </button>
                       <button type="submit" className="btn btn-primary" disabled={loading}>
-                        {loading ? "Saving..." : "Update Bill"}
+                        {loading ? "Saving..." : "Save Bill"}
                       </button>
                     </div>
                   </form>
@@ -424,7 +452,6 @@ const EditPharmacyBill = () => {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="footer text-center bg-white p-2 border-top">
           <p className="text-dark mb-0">
             2025 © <Link to="#" className="link-primary">Preclinic</Link>, All Rights Reserved

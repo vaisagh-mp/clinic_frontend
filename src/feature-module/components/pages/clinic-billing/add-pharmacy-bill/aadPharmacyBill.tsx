@@ -11,6 +11,7 @@ interface Item {
   procedure?: number | null;
   quantity: number;
   procedure_payments?: { amount_paid: number; notes: string }[];
+  subtotal?: number;
 }
 
 interface Patient {
@@ -22,11 +23,13 @@ interface Patient {
 interface Medicine {
   id: number;
   name: string;
+  unit_price: string;
 }
 
 interface Procedure {
   id: number;
   name: string;
+  price: number;
 }
 
 interface FormData {
@@ -49,6 +52,7 @@ const AddPharmacyBill = () => {
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [loading, setLoading] = useState(false);
 
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,6 +80,18 @@ const AddPharmacyBill = () => {
 
     fetchData();
   }, []);
+
+  const calculateSubtotal = (item: Item) => {
+  if (item.item_type === "MEDICINE" && item.medicine) {
+    const med = medicines.find((m) => m.id === item.medicine);
+    return med ? Number(med.unit_price) * item.quantity : 0;
+  }
+  if (item.item_type === "PROCEDURE" && item.procedure) {
+    const proc = procedures.find((p) => p.id === item.procedure);
+    return proc ? Number(proc.price) * item.quantity : 0; // keep using proc.price if procedures have it
+  }
+  return 0;
+};
 
   const handleBillChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -156,43 +172,52 @@ const AddPharmacyBill = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const token = localStorage.getItem("access_token");
-      if (!token) throw new Error("No access token found");
+  try {
+    const token = localStorage.getItem("access_token");
+    if (!token) throw new Error("No access token found");
 
-      const cleanedItems = formData.items.map((item) => {
-        const base = { item_type: item.item_type, quantity: item.quantity };
+    const cleanedItems = formData.items.map((item) => {
+      const base = { item_type: item.item_type, quantity: item.quantity };
 
-        if (item.item_type === "PROCEDURE") {
-          return {
-            ...base,
-            procedure: item.procedure,
-            procedure_id: item.procedure,
-            procedure_payments: item.procedure_payments || [],
-          };
-        }
+      if (item.item_type === "PROCEDURE") {
+        return {
+          ...base,
+          procedure: item.procedure,
+          procedure_id: item.procedure,
+          procedure_payments: item.procedure_payments || [],
+        };
+      }
 
-        return { ...base, medicine: item.medicine, medicine_id: item.medicine };
-      });
+      return { ...base, medicine: item.medicine, medicine_id: item.medicine };
+    });
 
-      const payload = { ...formData, items: cleanedItems };
+    const payload = { ...formData, items: cleanedItems };
 
-      await axios.post("http://3.109.62.26/api/billing/clinic/pharmacy-bill/", payload, {
+    // Save pharmacy bill
+    const response = await axios.post(
+      "http://3.109.62.26/api/billing/clinic/pharmacy-bill/",
+      payload,
+      {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      });
+      }
+    );
 
-      alert("Pharmacy Bill added successfully!");
-      navigate(all_routes.clinicpharmacybillList);
-    } catch (err: any) {
-      console.error("Error adding pharmacy bill:", err.response?.data || err.message);
-      alert(err.response?.data?.detail || "Failed to add bill");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const billId = response.data.id; // ✅ get the new bill ID
+    alert("Pharmacy Bill added successfully!");
+
+    // Redirect to clinic view pharmacy bill page
+    navigate(`/clinic-dashboard/view-pharmacy-bill/${billId}`);
+  } catch (err: any) {
+    console.error("Error adding pharmacy bill:", err.response?.data || err.message);
+    alert(err.response?.data?.detail || "Failed to add bill");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <>
@@ -292,7 +317,7 @@ const AddPharmacyBill = () => {
 
                         <div className="row">
                           {/* Item Type */}
-                          <div className="col-lg-4 mb-3">
+                          <div className="col-lg-3 mb-3">
                             <label className="form-label">Item Type *</label>
                             <select
                               name="item_type"
@@ -308,7 +333,7 @@ const AddPharmacyBill = () => {
                           </div>
 
                           {/* Medicine or Procedure */}
-                          <div className="col-lg-4 mb-3">
+                          <div className="col-lg-3 mb-3">
                             <label className="form-label">
                               {item.item_type === "PROCEDURE" ? "Procedure" : "Medicine"} *
                             </label>
@@ -332,7 +357,7 @@ const AddPharmacyBill = () => {
                           </div>
 
                           {/* Quantity */}
-                          <div className="col-lg-4 mb-3">
+                          <div className="col-lg-3 mb-3">
                             <label className="form-label">Quantity *</label>
                             <input
                               type="number"
@@ -344,7 +369,20 @@ const AddPharmacyBill = () => {
                               required
                             />
                           </div>
+
+                          {/* Subtotal */}
+<div className="col-lg-3 mb-3">
+  <label className="form-label">Subtotal</label>
+  <input
+    type="number"
+    className="form-control"
+    value={calculateSubtotal(item)}
+    readOnly
+  />
+</div>
+
                         </div>
+
 
                         {/* Procedure Payments Section */}
                         {item.item_type === "PROCEDURE" && item.procedure && (
