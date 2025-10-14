@@ -154,10 +154,10 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                           {/* Username */}
                           <div className="mb-3">
-                            <label className="form-label">Email Address</label>
+                            <label className="form-label">Username</label>
                             <div className="input-group">
                               <span className="input-group-text border-end-0 bg-white">
-                                <i className="ti ti-mail fs-14 text-dark" />
+                                <i className="ti ti-user fs-14 text-dark" />
                               </span>
                               <input
                                 type="text"
@@ -165,7 +165,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                                 value={formData.username}
                                 onChange={handleChange}
                                 className="form-control border-start-0 ps-0"
-                                placeholder="Enter Email Address"
+                                placeholder="Enter Username"
                                 required
                               />
                             </div>
