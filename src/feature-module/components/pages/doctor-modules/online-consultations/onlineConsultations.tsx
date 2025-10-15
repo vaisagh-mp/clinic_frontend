@@ -148,80 +148,83 @@ const OnlineConsultations = () => {
 
   // -------------------- Fetch Appointment --------------------
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      navigate("/login-cover");
-      return;
-    }
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    navigate("/login-cover");
+    return;
+  }
 
-    let isMounted = true;
+  let isMounted = true;
 
-    const fetchAppointment = async () => {
-      try {
-        const response = await axios.get(
-          `http://3.109.62.26/api/doctor/appointments/${appointmentId}/`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+  const fetchAppointment = async () => {
+    try {
+      const response = await axios.get(
+        `http://3.109.62.26/api/doctor/appointments/${appointmentId}/`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-        if (!isMounted) return;
-        const appt = response.data;
+      if (!isMounted) return;
+      const appt = response.data;
 
-        setAppointmentData({
-          ...appt,
-          patient_name: `${appt.patient.first_name} ${appt.patient.last_name}`,
-          age: appt.patient.age,
-          gender: appt.patient.gender,
-          blood_group: appt.patient.blood_group,
-          department: appt.clinic.type,
-          date_time: `${appt.appointment_date} ${appt.appointment_time}`,
-        });
+      setAppointmentData({
+        ...appt,
+        patient_name: `${appt.patient.first_name} ${appt.patient.last_name}`,
+        age: appt.patient.age,
+        gender: appt.patient.gender,
+        blood_group: appt.patient.blood_group,
+        department: appt.clinic.type,
+        date_time: `${appt.appointment_date} ${appt.appointment_time}`,
+        last_visited: appt.last_visited,
+        // ✅ Map attachment
+        attachmentUrl: appt.patient.attachment
+        ? `http://3.109.62.26${appt.patient.attachment}`
+        : null,
+      });
 
-        setFormData({
-          notes: appt.notes || "",
-          temperature: appt.temperature || "",
-          pulse: appt.pulse || "",
-          respiratory_rate: appt.respiratory_rate || "",
-          spo2: appt.spo2 || "",
-          height: appt.height || "",
-          weight: appt.weight || "",
-          bmi: appt.bmi || "",
-          waist: appt.waist || "",
-          complaints: appt.complaints || "",
-          diagnosis: appt.diagnosis || "",
-          advices: appt.advices?.length ? appt.advices : [""],
-          investigations: appt.investigations?.length ? appt.investigations : [""],
-          follow_ups: appt.follow_ups?.length ? appt.follow_ups : [""],
-          next_consultation: appt.next_consultation || null,
-          empty_stomach_required: appt.empty_stomach_required || false,
-          select_option: appt.select_option || "",
-        });
+      setFormData({
+        notes: appt.notes || "",
+        temperature: appt.temperature || "",
+        pulse: appt.pulse || "",
+        respiratory_rate: appt.respiratory_rate || "",
+        spo2: appt.spo2 || "",
+        height: appt.height || "",
+        weight: appt.weight || "",
+        bmi: appt.bmi || "",
+        waist: appt.waist || "",
+        complaints: appt.complaints || "",
+        diagnosis: appt.diagnosis || "",
+        advices: appt.advices?.length ? appt.advices : [""],
+        investigations: appt.investigations?.length ? appt.investigations : [""],
+        follow_ups: appt.follow_ups?.length ? appt.follow_ups : [""],
+        next_consultation: appt.next_consultation || null,
+        empty_stomach_required: appt.empty_stomach_required || false,
+        select_option: appt.select_option || "",
+      });
 
-        if (appt.prescriptions?.length > 0) {
-          const mapped = appt.prescriptions.map((item: any) => ({
-  id: Date.now() + Math.random(),
-  medicine: item.medicine_name,
-  dosageMg: item.dosage.split("/")[0] || "",
-  dosageM: item.dosage.split("/")[1] || "",
-  frequency: item.frequency, // ✅ ensure backend sends correct string
-  timing: item.timings,     // ✅ ensure backend sends correct string
-  instruction: item.duration,
-}));
-
-          setPrescriptions(mapped);
-        }
-      } catch (error) {
-        console.error("Error fetching consultation:", error);
+      if (appt.prescriptions?.length > 0) {
+        const mapped = appt.prescriptions.map((item: any) => ({
+          id: Date.now() + Math.random(),
+          medicine: item.medicine_name,
+          dosageMg: item.dosage.split("/")[0] || "",
+          dosageM: item.dosage.split("/")[1] || "",
+          frequency: item.frequency,
+          timing: item.timings,
+          instruction: item.duration,
+        }));
+        setPrescriptions(mapped);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching consultation:", error);
+    }
+  };
 
-    fetchAppointment();
+  fetchAppointment();
 
-    return () => {
-      isMounted = false;
-    };
-  }, [appointmentId, navigate]);
+  return () => {
+    isMounted = false;
+  };
+}, [appointmentId, navigate]);
+
 
   // -------------------- Form Handlers --------------------
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -239,6 +242,15 @@ const OnlineConsultations = () => {
   }));
 };
 
+  const formatDate = (dateString: string) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "2-digit",
+  });
+};
 
 
   const handleSubmit = async () => {
@@ -305,20 +317,51 @@ const OnlineConsultations = () => {
                   <span className="badge badge-md text-info border border-info mb-1 fs-13 fw-medium px-2">
                     #{appointmentData.appointment_id}
                   </span>
-                  <h5 className="text-dark mb-1 fw-bold">
-                    {appointmentData.patient_name}
-                  </h5>
+                  <h5 className="text-dark mb-1 fw-bold">{appointmentData.patient_name}</h5>
+
+                  {/* Reason */}
                   <p className="text-dark m-0">
-                    <span className="text-body"> Reason: </span>
-                    {appointmentData.reason || ""}
+                    <span className="text-body">Reason:</span> {appointmentData.reason || "N/A"}
                   </p>
 
+                  {/* Care Of */}
+                  {appointmentData.patient?.care_of && (
+                    <p className="text-dark m-0">
+                      <span className="text-body">Care Of:</span> {appointmentData.patient.care_of}
+                    </p>
+                  )}
+
+                  {/* Allergies */}
                   {appointmentData.allergies && appointmentData.allergies.trim() !== "" && (
-                      <p className="text-danger m-0">
-                        <span className="fw-medium">Allergies:</span>{" "}
-                        {appointmentData.allergies}
-                      </p>
-                    )}
+                    <p className="text-danger m-0">
+                      <span className="text-body">Allergies:</span> {appointmentData.allergies}
+                    </p>
+                  )}
+
+                  {/* Last Visited */}
+                  {appointmentData.last_visited && (
+                    <p className="text-dark m-0">
+                      <span className="text-body">Last Visited:</span> {formatDate(appointmentData.last_visited)}
+                    </p>
+                  )}
+
+                    {/* Attachment */}
+                      {appointmentData.attachmentUrl ? (
+  <div className="d-flex align-items-center gap-2 mt-1">
+    <span className="fw-medium">Attachment:</span>
+    <a
+      href={appointmentData.attachmentUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="btn btn-secondary btn-sm"
+    >
+      <i className="ti ti-eye me-1" /> View
+    </a>
+  </div>
+) : (
+  <p className="text-muted small mt-1">No attachment uploaded</p>
+)}
+
                 </div>
               </div>
               <div className="col-lg-6">

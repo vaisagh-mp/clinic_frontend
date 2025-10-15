@@ -16,6 +16,7 @@ interface VitalSigns {
 
 interface Appointment {
   id: number;
+  appointmentId?: string;
   dateTime: string;
   doctorName: string;
   doctorImage: string;
@@ -35,6 +36,7 @@ interface Patient {
   phone: string;
   address: string;
   lastVisited: string;
+  careOf?: string;
   vitalSigns: VitalSigns;
 }
 
@@ -95,6 +97,19 @@ const PatientDetails = () => {
           )[0]
       : null;
 
+      // --- Get latest COMPLETED appointment date ---
+      const completedAppointments = appointmentsData.filter(
+        (item: any) => item.status === "COMPLETED"
+      );
+
+      const latestCompletedAppointment = completedAppointments.length
+        ? [...completedAppointments].sort(
+            (a, b) =>
+              new Date(b.appointment_date + "T" + b.appointment_time).getTime() -
+              new Date(a.appointment_date + "T" + a.appointment_time).getTime()
+          )[0]
+        : null;
+        
 
       // --- Fetch latest vital signs from admin API ---
       const vitalRes = await axios.get(
@@ -123,12 +138,14 @@ const PatientDetails = () => {
         email: data.email || "N/A",
         phone: data.phone_number || "N/A",
         address: data.address || "N/A",
-        lastVisited: latestAppointment
-          ? new Date(latestAppointment.appointment_date).toLocaleDateString(
-              "en-GB",
-              { day: "2-digit", month: "short", year: "numeric" }
-            )
-          : "N/A",
+        careOf: data.care_of || "N/A",
+        lastVisited: latestCompletedAppointment
+        ? new Date(`${latestCompletedAppointment.appointment_date}T${latestCompletedAppointment.appointment_time}`).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : "N/A",
         vitalSigns: vitalData,
       });
 
@@ -136,6 +153,7 @@ const PatientDetails = () => {
       setAppointments(
         appointmentsData.map((item: any) => ({
           id: item.id,
+          appointmentId: item.appointment_id,
           dateTime:
             item.appointment_date && item.appointment_time
               ? new Date(
@@ -216,15 +234,25 @@ const PatientDetails = () => {
                   </h5>
                   <p className="mb-3">{patient.address}</p>
                   <div className="d-flex align-items-center flex-wrap">
+                    {patient.careOf && patient.careOf !== "N/A" && (
+                      <>
+                        <p className="mb-0 d-inline-flex align-items-center me-3">
+                          <i className="ti ti-user me-1 text-dark" />
+                          Care Of:
+                          <span className="text-dark ms-1">{patient.careOf}</span>
+                        </p>
+                        <span className="mx-2 text-light">|</span>
+                      </>
+                    )}
                     <p className="mb-0 d-inline-flex align-items-center">
                       <i className="ti ti-phone me-1 text-dark" />
-                      Phone :
+                      Phone:
                       <span className="text-dark ms-1">{patient.phone}</span>
                     </p>
                     <span className="mx-2 text-light">|</span>
                     <p className="mb-0 d-inline-flex align-items-center">
                       <i className="ti ti-calendar-time me-1 text-dark" />
-                      Last Visited :
+                      Last Visited:
                       <span className="text-dark ms-1">{patient.lastVisited}</span>
                     </p>
                   </div>
@@ -331,6 +359,7 @@ const PatientDetails = () => {
               <table className="table datatable table-nowrap">
                 <thead>
                   <tr>
+                    <th>Appointment ID</th>
                     <th>Date & Time</th>
                     <th>Doctor Name</th>
                     <th>Clinic</th>
@@ -341,6 +370,7 @@ const PatientDetails = () => {
                   {appointments.length > 0 ? (
                     appointments.map((app) => (
                       <tr key={app.id}>
+                        <td>{app.appointmentId || `APT-${app.id}`}</td> 
                         <td>{app.dateTime}</td>
                         <td>
                           <div className="d-flex align-items-center">
@@ -371,29 +401,29 @@ const PatientDetails = () => {
                         </td>
                         <td>{app.clinic}</td>
                         <td>
-                        <span
-                          className={`badge fs-13 rounded fw-medium text-uppercase badge-soft-${
-                            app.status === "COMPLETED"
-                              ? "success"
-                              : app.status === "CANCELLED"
-                              ? "danger"
-                              : "warning"
-                          } text-${
-                            app.status === "COMPLETED"
-                              ? "success"
-                              : app.status === "CANCELLED"
-                              ? "danger"
-                              : "warning"
-                          }`}
-                        >
-                          {app.status}
-                        </span>
-                      </td>
+                          <span
+                            className={`badge fs-13 rounded fw-medium text-uppercase badge-soft-${
+                              app.status === "COMPLETED"
+                                ? "success"
+                                : app.status === "CANCELLED"
+                                ? "danger"
+                                : "warning"
+                            } text-${
+                              app.status === "COMPLETED"
+                                ? "success"
+                                : app.status === "CANCELLED"
+                                ? "danger"
+                                : "warning"
+                            }`}
+                          >
+                            {app.status}
+                          </span>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="text-center">
+                      <td colSpan={5} className="text-center">
                         No appointments available
                       </td>
                     </tr>

@@ -109,12 +109,12 @@ const ClinicPatients = () => {
       sorter: (a: any, b: any) =>
         (a.email || "").length - (b.email || "").length,
     },
-    {
-      title: "Clinic",
-      dataIndex: "clinic",
-      sorter: (a: any, b: any) =>
-        (a.clinic || "").length - (b.clinic || "").length,
-    },
+    // {
+    //   title: "Clinic",
+    //   dataIndex: "clinic",
+    //   sorter: (a: any, b: any) =>
+    //     (a.clinic || "").length - (b.clinic || "").length,
+    // },
     {
       title: "DOB",
       dataIndex: "dob",

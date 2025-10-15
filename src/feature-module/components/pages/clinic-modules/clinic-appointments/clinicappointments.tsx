@@ -118,17 +118,17 @@ const ClinicAppointments = () => {
       render: (patient: any) =>
         patient ? (
           <div className="d-flex align-items-center">
-            <Link to={all_routes.patientDetails} className="avatar avatar-md me-2">
+            {/* <Link to={all_routes.patientDetails} className="avatar avatar-md me-2">
               <ImageWithBasePath
                 src={patient.profile_image || "assets/img/users/default.png"}
                 alt="patient"
                 className="rounded-circle"
               />
-            </Link>
-            <Link to={all_routes.patientDetails} className="text-dark fw-semibold">
+            </Link> */}
+            {/* <Link to={all_routes.patientDetails} className="text-dark fw-semibold"> */}
               {patient.first_name} {patient.last_name}
-              <span className="text-body fs-13 fw-normal d-block">{patient.phone}</span>
-            </Link>
+              {/* <span className="text-body fs-13 fw-normal d-block">{patient.phone_number}</span> */}
+            {/* </Link> */}
           </div>
         ) : (
           "N/A"
@@ -142,19 +142,19 @@ const ClinicAppointments = () => {
       render: (doctor: any) =>
         doctor ? (
           <div className="d-flex align-items-center">
-            <Link to={all_routes.doctordetails} className="avatar me-2 flex-shrink-0">
+            {/* <Link to={all_routes.doctordetails} className="avatar me-2 flex-shrink-0">
               <ImageWithBasePath
                 src={doctor.profile_image || "assets/img/doctors/default.png"}
                 alt="doctor"
                 className="rounded-circle"
               />
-            </Link>
+            </Link> */}
             <div>
               <h6 className="fs-14 mb-1 text-truncate">
-                <Link to={all_routes.doctordetails} className="fw-semibold">
+                {/* <Link to={all_routes.doctordetails} className="fw-semibold"> */}
                   {doctor.name ||
                     `${doctor.user?.first_name || ""} ${doctor.user?.last_name || ""}`}
-                </Link>
+                {/* </Link> */}
               </h6>
               <p className="mb-0 fs-13 text-truncate">{doctor.department || ""}</p>
             </div>
@@ -222,6 +222,34 @@ const ClinicAppointments = () => {
     },
   ];
 
+const filteredData = data.filter((item) => {
+  if (!searchText) return true;
+  const search = searchText.toLowerCase();
+
+  // Extract patient name
+  const patientName = `${item.patient?.first_name || ""} ${item.patient?.last_name || ""}`
+    .trim()
+    .toLowerCase();
+
+  // Extract doctor name
+  const doctorName = (item.doctor?.name || "").toLowerCase();
+
+  const match = (value?: string | number) =>
+    value?.toString().toLowerCase().includes(search);
+
+  return (
+    match(item.appointment_id) ||
+    match(item.appointment_date) ||
+    match(item.appointment_time) ||
+    match(item.status) ||
+    match(item.clinic?.name) ||
+    patientName.includes(search) ||
+    doctorName.includes(search) || 
+    match(item.doctor?.specialization)
+  );
+});
+
+
   return (
     <>
       <div className="page-wrapper">
@@ -258,11 +286,11 @@ const ClinicAppointments = () => {
           ) : (
             <div className="table-responsive">
               <Datatable
-                columns={columns}
-                dataSource={data || []}
-                Selection={false}
-                searchText={searchText}
-              />
+              columns={columns}
+              dataSource={filteredData}
+              Selection={false}
+              searchText={searchText}
+            />      
             </div>
           )}
         </div>

@@ -125,7 +125,7 @@ const Appointments = () => {
       render: (patient: any) =>
         patient ? (
           <div className="d-flex align-items-center">
-            <Link
+            {/* <Link
               to={all_routes.patientDetails}
               className="avatar avatar-md me-2"
             >
@@ -134,16 +134,16 @@ const Appointments = () => {
                 alt="patient"
                 className="rounded-circle"
               />
-            </Link>
-            <Link
+            </Link> */}
+            {/* <Link
               to={all_routes.patientDetails}
               className="text-dark fw-semibold"
-            >
+            > */}
               {patient.first_name} {patient.last_name}
               <span className="text-body fs-13 fw-normal d-block">
                 {patient.phone}
               </span>
-            </Link>
+            {/* </Link> */}
           </div>
         ) : (
           "N/A"
@@ -155,7 +155,7 @@ const Appointments = () => {
       render: (doctor: any) =>
         doctor ? (
           <div className="d-flex align-items-center">
-            <Link
+            {/* <Link
               to={all_routes.doctordetails}
               className="avatar me-2 flex-shrink-0"
             >
@@ -164,15 +164,15 @@ const Appointments = () => {
                 alt="doctor"
                 className="rounded-circle"
               />
-            </Link>
+            </Link> */}
             <div>
               <h6 className="fs-14 mb-1 text-truncate">
-                <Link to={all_routes.doctordetails} className="fw-semibold">
+                {/* <Link to={all_routes.doctordetails} className="fw-semibold"> */}
                   {doctor.name ||
                     `${doctor.user?.first_name || ""} ${
                       doctor.user?.last_name || ""
                     }`}
-                </Link>
+                {/* </Link> */}
               </h6>
               <p className="mb-0 fs-13 text-truncate">
                 {doctor.department || ""}

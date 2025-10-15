@@ -130,7 +130,7 @@ const ClinicnewAppointment = () => {
                       </select>
                     </div>
 
-                    <div className="col-md-6 mb-3">
+                    {/* <div className="col-md-6 mb-3">
                       <label className="form-label mb-1 fw-medium">
                         Department <span className="text-danger ms-1">*</span>
                       </label>
@@ -139,11 +139,8 @@ const ClinicnewAppointment = () => {
                           <option key={d.value} value={d.value}>{d.label}</option>
                         ))}
                       </select>
-                    </div>
-                  </div>
+                    </div> */}
 
-                  {/* Doctor / Appointment Type */}
-                  <div className="row">
                     <div className="col-md-6 mb-3">
                       <label className="form-label mb-1 fw-medium">
                         Doctor <span className="text-danger ms-1">*</span>
@@ -155,7 +152,22 @@ const ClinicnewAppointment = () => {
                       </select>
                     </div>
 
-                    <div className="col-md-6 mb-3">
+                  </div>
+
+                  {/* Doctor / Appointment Type */}
+                  <div className="row">
+                    {/* <div className="col-md-6 mb-3">
+                      <label className="form-label mb-1 fw-medium">
+                        Doctor <span className="text-danger ms-1">*</span>
+                      </label>
+                      <select className="form-control" value={formData.doctor} onChange={(e) => setFormData({ ...formData, doctor: e.target.value })}>
+                        {doctors.map((doc) => (
+                          <option key={doc.value} value={doc.value}>{doc.label}</option>
+                        ))}
+                      </select>
+                    </div> */}
+
+                    {/* <div className="col-md-6 mb-3">
                       <label className="form-label mb-1 fw-medium">
                         Appointment Type <span className="text-danger ms-1">*</span>
                       </label>
@@ -164,7 +176,7 @@ const ClinicnewAppointment = () => {
                           <option key={type.value} value={type.value}>{type.label}</option>
                         ))}
                       </select>
-                    </div>
+                    </div> */}
                   </div>
 
                   {/* Date / Time */}

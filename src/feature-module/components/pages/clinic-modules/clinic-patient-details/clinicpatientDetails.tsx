@@ -28,6 +28,7 @@ interface Consultation {
 
 interface Appointment {
   id: number;
+  appointmentId: string;
   dateTime: string;
   doctorName: string;
   doctorImage: string;
@@ -48,7 +49,9 @@ interface Patient {
   phone: string;
   address: string;
   lastVisited: string;
+  careOf?: string;
   vitalSigns: VitalSigns;
+  attachmentUrl?: string | null;
 }
 
 
@@ -63,7 +66,6 @@ interface FormattedAppointment {
   doctorId: number;
   appointmentDate: string;
 }
-
 
 const ClinicpatientDetails = () => {
   const navigate = useNavigate();
@@ -92,6 +94,46 @@ const ClinicpatientDetails = () => {
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
+  // ✅ Add upload file state here
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // ✅ Upload handler inside component
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      alert("Please select a file first!");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("attachment", selectedFile);
+
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      navigate("/login-cover");
+      return;
+    }
+
+    try {
+      await axios.patch(
+        `http://3.109.62.26/api/clinic/patients/${patient.id}/`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      alert("Attachment uploaded successfully!");
+      // Optional: refetch patient data to update UI
+    } catch (err) {
+      console.error("Upload failed:", err);
+      alert("Failed to upload attachment.");
+    }
+  };
+
+
   useEffect(() => {
   const token = localStorage.getItem("access_token");
   if (!token) {
@@ -107,7 +149,7 @@ const ClinicpatientDetails = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = res.data || {};
-
+      
       // --- Fetch appointments ---
       const appointmentsRes = await axios.get(
         `http://3.109.62.26/api/clinic/appointments/?patient_id=${id}`,
@@ -136,6 +178,7 @@ const ClinicpatientDetails = () => {
 
       const formattedAppointments = appointmentsData.map((item: any) => ({
   id: item.id,
+  appointmentId: item.appointment_id,
   dateTime: formatDateTime(item.appointment_date, item.appointment_time),
   doctorName: item.doctor?.name || "N/A",
   doctorImage:
@@ -148,6 +191,7 @@ const ClinicpatientDetails = () => {
   doctorId: item.doctor?.id || 0,
   appointmentDate: item.appointment_date,
 }));
+
 
 
       setAppointments(formattedAppointments);
@@ -171,7 +215,7 @@ const ClinicpatientDetails = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const consultationsData: Consultation[] = consultationsRes.data || [];
-
+      
       // --- Get the latest consultation for vital signs ---
       const latestConsultation =
         consultationsData.length > 0
@@ -181,38 +225,44 @@ const ClinicpatientDetails = () => {
             )[0]
           : null;
           
-      setPatient({
-        id: data.id || 0,
-        name:
-          data.first_name && data.last_name
-            ? `${data.first_name} ${data.last_name}`
-            : data.first_name || "N/A",
-        dob: data.dob || "N/A",
-        bloodGroup: data.blood_group || "N/A",
-        gender: data.gender || "N/A",
-        email: data.email || "N/A",
-        phone: data.phone_number || "N/A",
-        address: data.address || "N/A",
-        lastVisited,
-        allergies: latestConsultation?.allergies || "N/A",
-        vitalSigns: latestConsultation
-          ? {
-              bloodPressure: latestConsultation.blood_pressure || "N/A",
-              heartRate: latestConsultation.heart_rate || "N/A",
-              spo2: latestConsultation.spo2 || "N/A",
-              temperature: latestConsultation.temperature || "N/A",
-              respiratoryRate: latestConsultation.respiratory_rate || "N/A",
-              weight: latestConsultation.weight || "N/A",
-            }
-          : {
-              bloodPressure: "N/A",
-              heartRate: "N/A",
-              spo2: "N/A",
-              temperature: "N/A",
-              respiratoryRate: "N/A",
-              weight: "N/A",
-            },
-      });
+     setPatient({
+  id: data.id || 0,
+  name:
+    data.first_name && data.last_name
+      ? `${data.first_name} ${data.last_name}`
+      : data.first_name || "N/A",
+  dob: data.dob || "N/A",
+  bloodGroup: data.blood_group || "N/A",
+  gender: data.gender || "N/A",
+  email: data.email || "N/A",
+  phone: data.phone_number || "N/A",
+  address: data.address || "N/A",
+  lastVisited,
+  careOf: data.care_of || "N/A",
+  allergies: latestConsultation?.allergies || "N/A",
+  vitalSigns: latestConsultation
+    ? {
+        bloodPressure: latestConsultation.blood_pressure || "N/A",
+        heartRate: latestConsultation.heart_rate || "N/A",
+        spo2: latestConsultation.spo2 || "N/A",
+        temperature: latestConsultation.temperature || "N/A",
+        respiratoryRate: latestConsultation.respiratory_rate || "N/A",
+        weight: latestConsultation.weight || "N/A",
+      }
+    : {
+        bloodPressure: "N/A",
+        heartRate: "N/A",
+        spo2: "N/A",
+        temperature: "N/A",
+        respiratoryRate: "N/A",
+        weight: "N/A",
+      },
+  // ✅ Add the attachment URL here
+  attachmentUrl: data.attachment
+    ? `http://3.109.62.26${data.attachment}`
+    : null,
+});
+
     } catch (err) {
       console.error("Error fetching patient, appointment or consultation data:", err);
     }
@@ -228,7 +278,7 @@ const ClinicpatientDetails = () => {
         {/* Page Header */}
         <div className="mb-4">
           <h6 className="fw-bold mb-0 d-flex align-items-center">
-            <Link to={all_routes.patients} className="text-dark">
+            <Link to={all_routes.clinicpatients} className="text-dark">
               <i className="ti ti-chevron-left me-1" />
               Patients
             </Link>
@@ -270,15 +320,25 @@ const ClinicpatientDetails = () => {
                     </p>
                   )}
                   <div className="d-flex align-items-center flex-wrap">
+                    {patient.careOf && patient.careOf !== "N/A" && (
+                      <>
+                        <p className="mb-0 d-inline-flex align-items-center me-3">
+                          <i className="ti ti-user me-1 text-dark" />
+                          Care Of:
+                          <span className="text-dark ms-1">{patient.careOf}</span>
+                        </p>
+                        <span className="mx-2 text-light">|</span>
+                      </>
+                    )}
                     <p className="mb-0 d-inline-flex align-items-center">
                       <i className="ti ti-phone me-1 text-dark" />
-                      Phone :
+                      Phone:
                       <span className="text-dark ms-1">{patient.phone}</span>
                     </p>
                     <span className="mx-2 text-light">|</span>
                     <p className="mb-0 d-inline-flex align-items-center">
                       <i className="ti ti-calendar-time me-1 text-dark" />
-                      Last Visited :
+                      Last Visited:
                       <span className="text-dark ms-1">{patient.lastVisited}</span>
                     </p>
                   </div>
@@ -286,14 +346,35 @@ const ClinicpatientDetails = () => {
               </div>
             </div>
             <div className="col-xl-3 col-lg-4 text-lg-end p-3">
-              <Link
-                to={`${all_routes.clinicnewAppointments}?patient_id=${patient.id}`}
-                className="btn btn-primary"
-              >
-                <i className="ti ti-calendar-event me-1" />
-                Book Appointment
-              </Link>
-            </div>
+  <form onSubmit={handleUpload}>
+    <input
+      type="file"
+      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+      className="form-control mb-2"
+    />
+    <div className="d-flex gap-2">
+      <button type="submit" className="btn btn-primary">
+        <i className="ti ti-upload me-1" />
+        Upload Attachment
+      </button>
+
+      {/* ✅ View button */}
+      {patient.attachmentUrl && (
+        <a
+          href={patient.attachmentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-secondary"
+        >
+          <i className="ti ti-eye me-1" />
+          View
+        </a>
+      )}
+    </div>
+  </form>
+</div>
+
+
           </div>
         </div>
 
@@ -385,6 +466,7 @@ const ClinicpatientDetails = () => {
               <table className="table datatable table-nowrap">
                 <thead>
                   <tr>
+                    <th>Appointment ID</th>
                     <th>Date & Time</th>
                     <th>Doctor Name</th>
                     <th>Clinic</th>
@@ -395,6 +477,7 @@ const ClinicpatientDetails = () => {
                   {appointments.length > 0 ? (
                     appointments.map((app) => (
                       <tr key={app.id}>
+                        <td>{app.appointmentId}</td>
                         <td>{app.dateTime}</td>
                         <td>
                           <div className="d-flex align-items-center">

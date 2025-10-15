@@ -77,13 +77,13 @@ const Sidebarthree = () => {
         {/* Sidebar Logo */}
         <div className="sidebar-logo">
           <div>
-            <Link to={routes.dashboard} className="logo logo-normal">
+            <Link to={routes.clinicdashboard} className="logo logo-normal">
               <ImageWithBasePath src="assets/img/logo.svg" alt="Logo" />
             </Link>
-            <Link to={routes.dashboard} className="logo-small">
+            <Link to={routes.clinicdashboard} className="logo-small">
               <ImageWithBasePath src="assets/img/logo-small.svg" alt="Logo" />
             </Link>
-            <Link to={routes.dashboard} className="dark-logo">
+            <Link to={routes.clinicdashboard} className="dark-logo">
               <ImageWithBasePath src="assets/img/logo-white.svg" alt="Logo" />
             </Link>
           </div>
