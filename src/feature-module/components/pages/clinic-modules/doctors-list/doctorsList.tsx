@@ -240,7 +240,7 @@ const DoctorsList = () => {
             </div>
           </div>
 
-          <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-3 mb-3">
+          <div className="table-search d-flex align-items-center justify-content-between flex-wrap row-gap-3 mb-3">
             <SearchInput value={searchText} onChange={handleSearch} />
           </div>
 

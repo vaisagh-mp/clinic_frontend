@@ -85,12 +85,14 @@ const CliniceditDoctor = () => {
 
       const formPayload = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
-        if (key !== "password" || value) formPayload.append(key, String(value));
-      });
+  if (key !== "password" && key !== "username") {
+    formPayload.append(key, String(value));
+  }
+});
 
       if (profileImage) formPayload.append("profile_image", profileImage);
 
-      await axios.put(
+      await axios.patch(
         `http://3.109.62.26/api/clinic/doctors/${id}/`,
         formPayload,
         { headers: { Authorization: `Bearer ${token}` } }

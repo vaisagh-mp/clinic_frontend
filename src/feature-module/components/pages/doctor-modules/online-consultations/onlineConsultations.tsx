@@ -33,6 +33,7 @@ export const Timing = [
 interface MedicationItem {
   id: number;
   medicine?: string;
+  procedure?: number;
   dosageMg: string;
   dosageM: string;
   frequency?: string;
@@ -91,6 +92,41 @@ const OnlineConsultations = () => {
     };
     fetchMedicines();
   }, []);
+
+
+
+  const [procedureOptions, setProcedureOptions] = useState<{ value: string; label: string }[]>([]);
+
+  // -------------------- Fetch Procedures --------------------
+  useEffect(() => {
+    const fetchProcedures = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        const response = await axios.get("http://3.109.62.26/api/billing/procedures/", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const options = response.data.map((proc: any) => ({
+          value: proc.id,
+          label: proc.name,
+        }));
+        setProcedureOptions(options);
+      } catch (error) {
+        console.error("Error fetching procedures:", error);
+      }
+    };
+    fetchProcedures();
+  }, []);
+
+
+  const handleProcedureChange = (id: number, value: string) => {
+  setPrescriptions((prev) =>
+    prev.map((item) => (item.id === id ? { ...item, procedure: Number(value) } : item))
+  );
+};
+
+
+
+
 
   // -------------------- Prescription Handlers --------------------
   const handleAddAboveLast = () => {
@@ -258,13 +294,19 @@ const OnlineConsultations = () => {
     if (!token || !appointmentData) return;
 
     try {
-      const mappedPrescriptions = prescriptions.map((item) => ({
-        medicine_name: item.medicine || (medicineOptions[0]?.value || ""),
-        dosage: `${item.dosageMg}${item.dosageM ? "/" + item.dosageM : ""}`.trim(),
-        frequency: item.frequency || "1-0-0",
-        timings: item.timing || "ANYTIME",
-        duration: item.instruction || "1 day",
-      }));
+      const mappedPrescriptions = prescriptions.map((item) => {
+  const payload: any = {
+    dosage: `${item.dosageMg}${item.dosageM ? "/" + item.dosageM : ""}`.trim(),
+    frequency: item.frequency || "1-0-0",
+    timings: item.timing || "ANYTIME",
+    duration: item.instruction || "1 day",
+  };
+
+  if (item.medicine) payload.medicine_name = item.medicine;
+  if (item.procedure) payload.procedure = item.procedure;
+
+  return payload;
+});
 
       await axios.post(
   "http://3.109.62.26/api/doctor/consultations/",
@@ -498,16 +540,19 @@ const OnlineConsultations = () => {
   <div className="card-body">
     <div className="medication-list">
       {prescriptions.map((item, index) => {
+        const isProcedureOnly = !!item.procedure && !item.medicine;
+        const isMedicine = !!item.medicine;
         const isLast = index === prescriptions.length - 1;
+
         return (
           <div className="row medication-list-item mb-2" key={item.id}>
             <div className="col-lg-11">
               <div className="row">
-                {/* Medicine */}
-                <div className="col-lg-2">
-                  {index === 0 && <label className="form-label">Medicine</label>}
+                {/* Name column */}
+                <div className={isProcedureOnly ? "col-lg-10" : "col-lg-2"}>
+                  {index === 0 && <label className="form-label">Name</label>}
                   <select
-                    className="form-control"
+                    className="form-control mb-1"
                     value={item.medicine || ""}
                     onChange={(e) => handleMedicineChange(item.id, e.target.value)}
                   >
@@ -518,72 +563,69 @@ const OnlineConsultations = () => {
                       </option>
                     ))}
                   </select>
-                </div>
 
-                {/* Dosage (mg) */}
-                <div className="col-lg-2">
-                  {index === 0 && <label className="form-label">Dosage (mg)</label>}
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={item.dosageMg}
-                    onChange={(e) => handleDosageMgChange(item.id, e.target.value)}
-                  />
-                </div>
-
-                {/* Dosage (m) */}
-                {/* <div className="col-lg-2">
-                  {index === 0 && <label className="form-label">Dosage (m)</label>}
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={item.dosageM}
-                    onChange={(e) => handleDosageMChange(item.id, e.target.value)}
-                  />
-                </div> */}
-
-                {/* Frequency */}
-                <div className="col-lg-2">
-                  {index === 0 && <label className="form-label">Frequency</label>}
                   <select
-                    className="form-control"
-                    value={item.frequency || "1-0-0"}
-                    onChange={(e) => handleFrequencyChange(item.id, e.target.value)}
-                  >
-                    {Frequency.map((f) => (
-                      <option key={f.value} value={f.value}>
-                        {f.label}
-                      </option>
-                    ))}
-                  </select>
+  className="form-control"
+  value={item.procedure || ""}
+  onChange={(e) => handleProcedureChange(item.id, e.target.value)}
+>
+  <option value="">Select Procedure</option>
+  {procedureOptions.map((proc) => (
+    <option key={proc.value} value={proc.value}>
+      {proc.label}
+    </option>
+  ))}
+</select>
+
                 </div>
 
-                {/* Timing */}
-                <div className="col-lg-2">
-                  {index === 0 && <label className="form-label">Timing</label>}
-                  <select
-                    className="form-control"
-                    value={item.timing || "ANYTIME"}
-                    onChange={(e) => handleTimingChange(item.id, e.target.value)}
-                  >
-                    {Timing.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Instruction */}
-                <div className="col-lg-2">
-                  {index === 0 && <label className="form-label">Instruction</label>}
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={item.instruction}
-                    onChange={(e) => handleInstructionChange(item.id, e.target.value)}
-                  />
-                </div>
+                {/* Only show these fields if it's medicine */}
+                {isMedicine && (
+                  <>
+                    <div className="col-lg-2">
+                      {index === 0 && <label className="form-label">Dosage (mg)</label>}
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={item.dosageMg}
+                        onChange={(e) => handleDosageMgChange(item.id, e.target.value)}
+                      />
+                    </div>
+                    <div className="col-lg-2">
+                      {index === 0 && <label className="form-label">Frequency</label>}
+                      <select
+                        className="form-control"
+                        value={item.frequency || "1-0-0"}
+                        onChange={(e) => handleFrequencyChange(item.id, e.target.value)}
+                      >
+                        {Frequency.map((f) => (
+                          <option key={f.value} value={f.value}>{f.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-lg-2">
+                      {index === 0 && <label className="form-label">Timing</label>}
+                      <select
+                        className="form-control"
+                        value={item.timing || "ANYTIME"}
+                        onChange={(e) => handleTimingChange(item.id, e.target.value)}
+                      >
+                        {Timing.map((t) => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-lg-2">
+                      {index === 0 && <label className="form-label">Duration</label>}
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={item.instruction}
+                        onChange={(e) => handleInstructionChange(item.id, e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

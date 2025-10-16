@@ -77,7 +77,7 @@ const ClinicPrescriptions = () => {
       dataIndex: "Patient",
       render: (text: any, record: any) => (
         <div className="d-flex align-items-center">
-          <Link
+          {/* <Link
             to={all_routes.doctorspatientdetails}
             className="avatar avatar-md me-2"
           >
@@ -86,7 +86,7 @@ const ClinicPrescriptions = () => {
               alt="patient"
               className="rounded-circle"
             />
-          </Link>
+          </Link> */}
           <Link to={all_routes.doctorspatientdetails}>
             {text}
             <span className="text-body fs-13 fw-normal d-block">
@@ -155,7 +155,7 @@ const ClinicPrescriptions = () => {
             </div>
           </div>
 
-          <div className="search-set mb-3">
+          <div className="table-search d-flex align-items-center justify-content-between flex-wrap row-gap-3 mb-3">
             <SearchInput value={searchText} onChange={setSearchText} />
           </div>
 

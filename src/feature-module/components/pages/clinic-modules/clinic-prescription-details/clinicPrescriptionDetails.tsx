@@ -180,37 +180,50 @@ const ClinicPrescriptionDetails = () => {
                   </div>
 
                   {/* Prescription Table */}
-                  <div className="mb-4">
-                    <h6 className="mb-3 fs-16 fw-semibold text-center">
-                      Prescription
-                    </h6>
-                    <div className="table-responsive border bg-white">
-                      <table className="table table-nowrap">
-                        <thead className="table-light">
-                          <tr>
-                            <th>SNO</th>
-                            <th>Medicine Name</th>
-                            <th>Dosage</th>
-                            <th>Frequency</th>
-                            <th>Duration</th>
-                            <th>Timings</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {prescriptions?.map((med: any, index: number) => (
-                            <tr key={index}>
-                              <td>{(index + 1).toString().padStart(2, "0")}</td>
-                              <td>{med.medicine_name}</td>
-                              <td>{med.dosage}</td>
-                              <td>{med.frequency}</td>
-                              <td>{med.duration}</td>
-                              <td>{med.timings?.replace("_", " ")}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+<div className="mb-4">
+  <h6 className="mb-3 fs-16 fw-semibold text-center">
+    Prescription
+  </h6>
+  <div className="table-responsive border bg-white">
+    <table className="table table-nowrap">
+      <thead className="table-light">
+        <tr>
+          <th>SNO</th>
+          <th>Name</th>
+          <th>Dosage</th>
+          <th>Frequency</th>
+          <th>Duration</th>
+          <th>Timings</th>
+        </tr>
+      </thead>
+      <tbody>
+        {prescriptions?.map((item: any, index: number) => {
+          const isProcedureOnly = !item.medicine_name && item.procedure;
+          return (
+            <tr key={index}>
+              <td>{(index + 1).toString().padStart(2, "0")}</td>
+              <td>
+                {isProcedureOnly
+                  ? item.procedure.name // ✅ show procedure name
+                  : item.medicine_name || "N/A"}
+              </td>
+
+              {!isProcedureOnly && (
+                <>
+                  <td>{item.dosage || "-"}</td>
+                  <td>{item.frequency || "-"}</td>
+                  <td>{item.duration || "-"}</td>
+                  <td>{item.timings?.replace("_", " ") || "-"}</td>
+                </>
+              )}
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 
                   {/* Advice */}
                   <div className="pb-3 mb-3 border-bottom">

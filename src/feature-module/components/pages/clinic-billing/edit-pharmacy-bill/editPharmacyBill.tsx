@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { all_routes } from "../../../../routes/all_routes";
 import axios from "axios";
 import Header from "../../../../../core/common/header/header";
-import Sidebar from "../../../../../core/common/sidebar/sidebarAdmin";
+// import Sidebar from "../../../../../core/common/sidebar/sidebarAdmin";
+import Sidebarthree from "../../../../../core/common/sidebarthree/sidebarthree";
 
 interface Item {
   item_type: string;
@@ -247,7 +248,7 @@ const EditPharmacyBill = () => {
   return (
     <>
       <Header />
-      <Sidebar />
+      <Sidebarthree />
       <div className="page-wrapper">
         <div className="content">
           <div className="row">

@@ -179,7 +179,9 @@ const AllDoctors = () => {
             </div>
           </div>
 
-          <SearchInput value={searchText} onChange={handleSearch} />
+          <div className="table-search d-flex align-items-center justify-content-between flex-wrap row-gap-3 mb-3">
+            <SearchInput value={searchText} onChange={handleSearch} />
+          </div>
 
           <div className="table-responsive">
             <Datatable

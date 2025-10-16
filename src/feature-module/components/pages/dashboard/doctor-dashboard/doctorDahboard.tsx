@@ -167,61 +167,81 @@ const DoctorDahboard = () => {
             </div>
           </div>
 
-          {/* Row: Upcoming Appointment - Only one */}
-          <div className="row">
-            {upcoming_appointments.slice(0, 1).map((appt: any) => (
-              <div className="col-xl-4 d-flex" key={appt.id}>
-                <div className="card shadow-sm flex-fill w-100">
-                  <div className="card-body">
-                    <div className="d-flex align-items-center mb-3">
-                      <Link to="#" className="avatar me-2 flex-shrink-0">
-                        <ImageWithBasePath
-                          src="assets/img/doctors/doctor-01.jpg"
-                          alt="img"
-                          className="rounded-circle"
-                        />
-                      </Link>
-                      <div>
-                        <h6 className="fs-14 mb-1 text-truncate">
-                          <Link to="#" className="fw-semibold">
-                            {appt.patient_name}
-                          </Link>
-                        </h6>
-                        <p className="mb-0 fs-13 text-truncate">#{appt.appointment_id}</p>
-                      </div>
-                    </div>
-                    <h6 className="fs-14 fw-semibold mb-1">General Visit</h6>
-                    <div className="d-flex align-items-center gap-2 flex-wrap mb-3">
-                      <p className="mb-0 d-inline-flex align-items-center">
-                        <i className="ti ti-calendar-time text-dark me-1" />
-                        {appt.appointment_date}
-                      </p>
-                      <p className="mb-0 d-inline-flex align-items-center">
-                        <i className="ti ti-clock text-dark me-1" />
-                        {appt.appointment_time}
-                      </p>
-                    </div>
-                    <div className="my-3 border-bottom pb-3">
-                      <Link to="#" className="btn btn-primary w-100">
-                        Start Appointment
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+         {/* Row: Upcoming Appointments - Up to 2 */}
+<div className="row">
+  {/* Upcoming Appointments Card */}
+  <div className="col-xl-4 d-flex">
+    <div className="card shadow-sm flex-fill w-100">
+      <div className="card-body">
+        <h6 className="fw-semibold mb-3">Upcoming Appointments</h6>
 
-            <div className="col-xl-8 d-flex">
-              <div className="card shadow-sm flex-fill w-100">
-                <div className="card-header d-flex align-items-center justify-content-between">
-                  <h5 className="fw-bold mb-0">Appointments</h5>
-                </div>
-                <div className="card-body pb-0">
-                  <SCol20Chart />
-                </div>
+        {upcoming_appointments.length > 0 ? (
+          upcoming_appointments.slice(0, 2).map((appt: any) => (
+            <div key={appt.id} className="mb-3 border-bottom pb-3">
+              <div className="d-flex align-items-center mb-2">
+                <Link to="#" className="avatar me-2 flex-shrink-0">
+                  <ImageWithBasePath
+                    src="assets/img/doctors/doctor-01.jpg"
+                    alt="img"
+                    className="rounded-circle"
+                  />
+                </Link>
+                <div>
+  <h6 className="fs-14 mb-1 text-truncate">
+    <Link
+      to={`/doctor-dashboard/consultations/add/${appt.id}`}
+      className="fw-semibold"
+    >
+      {appt.patient_name}
+    </Link>
+  </h6>
+  <p className="mb-0 fs-13 text-truncate">#{appt.appointment_id}</p>
+</div>
+
               </div>
+              <h6 className="fs-14 fw-semibold mb-1">General Visit</h6>
+              <div className="d-flex align-items-center gap-2 flex-wrap mb-2">
+                <p className="mb-0 d-inline-flex align-items-center">
+                  <i className="ti ti-calendar-time text-dark me-1" />
+                  {appt.appointment_date}
+                </p>
+                <p className="mb-0 d-inline-flex align-items-center">
+                  <i className="ti ti-clock text-dark me-1" />
+                  {appt.appointment_time}
+                </p>
+              </div>
+              <Link
+  to={`/doctor-dashboard/consultations/add/${appt.id}`}
+  className="btn btn-primary w-100"
+>
+  Start Appointment
+</Link>
+
             </div>
+          ))
+        ) : (
+          <div className="d-flex align-items-center justify-content-center" style={{ minHeight: "180px" }}>
+            <p className="text-muted mb-0">No upcoming consultations</p>
           </div>
+        )}
+      </div>
+    </div>
+  </div>
+
+  {/* Chart Column */}
+  <div className="col-xl-8 d-flex">
+    <div className="card shadow-sm flex-fill w-100">
+      <div className="card-header d-flex align-items-center justify-content-between">
+        <h5 className="fw-bold mb-0">Appointments</h5>
+      </div>
+      <div className="card-body pb-0">
+        <SCol20Chart />
+      </div>
+    </div>
+  </div>
+</div>
+
+
 
           {/* Row: All Appointments Table */}
           <div className="row">

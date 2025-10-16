@@ -245,7 +245,11 @@ const ClinicDashboard = () => {
                             className="avatar me-2 flex-shrink-0 position-relative"
                           >
                             {doc.profile_image ? (
-                              <ImageWithBasePath src={doc.profile_image} alt="img" className="rounded-circle" />
+                              <ImageWithBasePath
+                                src={`http://3.109.62.26${doc.profile_image}`} // ✅ prepend the base profile path
+                                alt="img"
+                                className="rounded-circle"
+                              />
                             ) : (
                               <span className="avatar-placeholder rounded-circle">{doc.name.charAt(0)}</span>
                             )}

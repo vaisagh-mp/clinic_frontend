@@ -164,21 +164,7 @@ const NewAppointment = () => {
                         ))}
                       </select>
                     </div>
-
                     <div className="col-md-4 mb-3">
-                      <label className="form-label mb-1 fw-medium">
-                        Department <span className="text-danger ms-1">*</span>
-                      </label>
-                      <select className="form-control" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })}>
-                        {Department.map((d) => (
-                          <option key={d.value} value={d.value}>{d.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
                       <label className="form-label mb-1 fw-medium">
                         Doctor <span className="text-danger ms-1">*</span>
                       </label>
@@ -188,6 +174,21 @@ const NewAppointment = () => {
                         ))}
                       </select>
                     </div>
+
+                    {/* <div className="col-md-4 mb-3">
+                      <label className="form-label mb-1 fw-medium">
+                        Department <span className="text-danger ms-1">*</span>
+                      </label>
+                      <select className="form-control" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })}>
+                        {Department.map((d) => (
+                          <option key={d.value} value={d.value}>{d.label}</option>
+                        ))}
+                      </select>
+                    </div> */}
+                  </div>
+
+                  {/* <div className="row">
+                    
 
                     <div className="col-md-6 mb-3">
                       <label className="form-label mb-1 fw-medium">
@@ -199,7 +200,7 @@ const NewAppointment = () => {
                         ))}
                       </select>
                     </div>
-                  </div>
+                  </div> */}
 
                   <div className="row">
                     <div className="col-md-6 mb-3">

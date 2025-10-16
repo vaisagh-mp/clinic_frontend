@@ -76,7 +76,7 @@ const ClinicdoctorDetails = () => {
       <div className="content pb-0">
         <div className="mb-3">
           <h6 className="fw-semibold fs-14 mb-0">
-            <Link to={all_routes.doctorsList}>
+            <Link to={all_routes.clinicallDoctors}>
               <i className="ti ti-chevron-left me-1" />
               Doctors
             </Link>
