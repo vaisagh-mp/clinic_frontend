@@ -87,7 +87,7 @@ const ClinicPrescriptions = () => {
               className="rounded-circle"
             />
           </Link> */}
-          <Link to={all_routes.doctorspatientdetails}>
+          <Link to={`${all_routes.clinicPrescriptionsdetails}/${record.Prescription_ID}`}>
             {text}
             <span className="text-body fs-13 fw-normal d-block">
               {record.phone_number}

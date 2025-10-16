@@ -240,6 +240,20 @@ const handleSubmit = async (e: React.FormEvent) => {
                             </button>
                           </div>
                         </div>
+
+                        <div className="login-or position-relative mb-3">
+                        <span className="span-or">OR</span>
+                      </div>
+                      <div className="text-center">
+                        <h6 className="fw-normal fs-14 text-dark mb-0">
+                          Don’t have an account yet?
+                          <Link to={all_routes.registercover} className="hover-a">
+                            
+                            Register
+                          </Link>
+                        </h6>
+                      </div>
+
                       </div>
                     </div>
                   </form>
