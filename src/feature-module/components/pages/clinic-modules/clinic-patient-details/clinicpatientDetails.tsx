@@ -67,6 +67,18 @@ interface FormattedAppointment {
   appointmentDate: string;
 }
 
+interface FlattenedProcedureItem {
+  id: number;
+  bill_number: string;
+  bill_date: string;
+  doctor_name: string;
+  procedure_name: string;
+  subtotal: number;
+  total_paid: number;
+  balance_due: number;
+}
+
+
 const ClinicpatientDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -93,6 +105,7 @@ const ClinicpatientDetails = () => {
   });
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [procedures, setProcedures] = useState<FlattenedProcedureItem[]>([]);
 
   // ✅ Add upload file state here
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -158,6 +171,43 @@ const ClinicpatientDetails = () => {
       const appointmentsData =
         appointmentsRes.data.results || appointmentsRes.data || [];
 
+
+      // --- Fetch billing / procedure data ---
+const billingRes = await axios.get(
+  `http://3.109.62.26/api/billing/clinic/pharmacy-bill/?patient_id=${id}`,
+  { headers: { Authorization: `Bearer ${token}` } }
+);
+const billingData = billingRes.data.results || billingRes.data || [];
+
+const procedureItems: FlattenedProcedureItem[] = [];
+
+billingData.forEach((bill: any) => {
+  const formattedBillDate = bill.bill_date
+    ? new Date(bill.bill_date).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "N/A";
+
+  bill.items
+    .filter((item: any) => item.item_type === "PROCEDURE")
+    .forEach((item: any) => {
+      procedureItems.push({
+        id: item.id,
+        bill_number: bill.bill_number,
+        bill_date: formattedBillDate,
+        doctor_name: bill.doctor_name,
+        procedure_name: item.procedure,
+        subtotal: item.subtotal,
+        total_paid: item.total_paid,
+        balance_due: item.balance_due,
+      });
+    });
+});
+
+setProcedures(procedureItems);
+  
       // --- Format appointments date & time ---
       const formatDateTime = (date: string, time: string) => {
         if (!date) return "N/A";
@@ -452,6 +502,73 @@ const ClinicpatientDetails = () => {
             </div>
           </div>
         </div>
+
+
+        {/* Procedure Table */}
+<div className="card mt-4">
+  <div className="card-header">
+    <h5 className="fw-bold mb-0">
+      <i className="ti ti-file-text me-1" />
+      Procedures
+    </h5>
+  </div>
+  <div className="card-body">
+    <div className="table-responsive">
+      <table className="table datatable table-nowrap">
+        <thead>
+          <tr>
+            <th>Bill Number</th>
+            <th>Procedure Name</th>
+            <th>Bill Date</th> {/* New Column */}
+            <th>Doctor Name</th>
+            <th>Subtotal</th>
+            <th>Total Paid</th>
+            <th>Balance Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          {procedures.length > 0 ? (
+            procedures.map((proc) => (
+              <tr key={proc.id}>
+                <td>
+                  <Link
+                    to={`/clinic-dashboard/patient-details/procedurepayment/${proc.id}`}
+                    className="text-decoration-none"
+                  >
+                    {proc.bill_number}
+                  </Link>
+                </td>
+                <td>{proc.procedure_name}</td>
+                <td>{proc.bill_date || "N/A"}</td>
+                <td>{proc.doctor_name}</td>
+                <td>{proc.subtotal}</td>
+                <td>{proc.total_paid}</td>
+                <td>
+                  <span
+                    className={`badge fs-13 rounded fw-medium text-uppercase badge-soft-${
+                      Number(proc.balance_due) > 0 ? "danger" : "success"
+                    } text-${Number(proc.balance_due) > 0 ? "danger" : "success"}`}
+                  >
+                    {proc.balance_due}
+                  </span>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={7} className="text-center">
+                No procedures available
+              </td>
+            </tr>
+          )}
+        </tbody>
+
+      </table>
+    </div>
+  </div>
+</div>
+
+
 
         {/* Appointments Table */}
         <div className="card mt-4">

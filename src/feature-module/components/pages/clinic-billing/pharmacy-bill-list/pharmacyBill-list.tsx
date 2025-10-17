@@ -74,6 +74,7 @@ const PharmacyBills = () => {
           ...b,
           total_amount: parseFloat(b.total_amount) || 0,
           patient_name: b.patient?.name || "N/A",  // 👈 use ?.name
+          patient_id: b.patient?.id || b.patient?.id,
           balance_due: b.items?.reduce((sum: number, item: any) => sum + (item.balance_due || 0), 0) || 0,
         }));
 

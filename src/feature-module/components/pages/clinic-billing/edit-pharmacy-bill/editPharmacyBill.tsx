@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { all_routes } from "../../../../routes/all_routes";
 import axios from "axios";
 import Header from "../../../../../core/common/header/header";
-// import Sidebar from "../../../../../core/common/sidebar/sidebarAdmin";
 import Sidebarthree from "../../../../../core/common/sidebarthree/sidebarthree";
 
 interface Item {
@@ -97,33 +96,40 @@ const EditPharmacyBill = () => {
         });
 
         const bill = res.data;
-
         const patientObj = patients.find((p) => `${p.first_name} ${p.last_name || ""}`.trim() === bill.patient.name);
 
         const mappedItems: Item[] = bill.items.map((item: any) => {
           if (item.item_type === "MEDICINE") {
-            // Map medicine by ID if exists, otherwise keep name
             const medObj = medicines.find(
-              (m) => m.name.toLowerCase().trim() === (typeof item.medicine === "string" ? item.medicine.toLowerCase().trim() : "")
+              (m) =>
+                m.name.toLowerCase().trim() ===
+                (typeof item.medicine === "string" ? item.medicine.toLowerCase().trim() : "")
             );
             return {
               item_type: "MEDICINE",
-              medicine: medObj ? medObj.id : item.medicine, // keep name if not in list
+              medicine: medObj ? medObj.id : item.medicine,
               procedure: null,
               quantity: item.quantity || 1,
               unit_price: item.unit_price ? Number(item.unit_price) : 0,
             };
           } else if (item.item_type === "PROCEDURE") {
             const procObj = procedures.find(
-              (p) => p.name.toLowerCase().trim() === (typeof item.procedure === "string" ? item.procedure.toLowerCase().trim() : "")
+              (p) =>
+                p.name.toLowerCase().trim() ===
+                (typeof item.procedure === "string" ? item.procedure.toLowerCase().trim() : "")
             );
             return {
               item_type: "PROCEDURE",
-              procedure: procObj ? procObj.id : item.procedure, // keep name if not in list
+              procedure: procObj ? procObj.id : item.procedure,
               medicine: null,
               quantity: item.quantity || 1,
               unit_price: item.unit_price ? Number(item.unit_price) : 0,
-              procedure_payments: item.procedure_payments || [],
+              procedure_payments: [
+                {
+                  amount_paid: item.total_paid || 0,
+                  notes: "", // If API has notes, replace here
+                },
+              ],
             };
           } else {
             return { item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] };
@@ -134,7 +140,10 @@ const EditPharmacyBill = () => {
           patient_id: patientObj?.id?.toString() || "",
           bill_date: bill.bill_date,
           status: bill.status,
-          items: mappedItems.length > 0 ? mappedItems : [{ item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] }],
+          items:
+            mappedItems.length > 0
+              ? mappedItems
+              : [{ item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] }],
         });
       } catch (err: any) {
         console.error("Error fetching bill:", err.response?.data || err.message);
@@ -225,15 +234,42 @@ const EditPharmacyBill = () => {
   // Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
+    for (const item of formData.items) {
+      if (item.item_type === "PROCEDURE") {
+        if (!item.procedure_payments || item.procedure_payments.length === 0) {
+          alert("Each procedure must have at least one payment.");
+          return;
+        }
+        for (const payment of item.procedure_payments) {
+          if (payment.amount_paid === null || payment.amount_paid === undefined || payment.amount_paid <= 0) {
+            alert("Please enter a valid Amount Paid for all procedure payments.");
+            return;
+          }
+        }
+      }
+    }
+
+    setLoading(true);
     try {
       const token = localStorage.getItem("access_token");
       if (!token) throw new Error("No access token found");
 
+      const payload = {
+        ...formData,
+        items: formData.items.map((item) => ({
+          item_type: item.item_type,
+          medicine_id: item.item_type === "MEDICINE" ? item.medicine : null,
+          procedure_id: item.item_type === "PROCEDURE" ? item.procedure : null,
+          quantity: item.quantity,
+          unit_price: item.unit_price || 0,
+          procedure_payments: item.procedure_payments || [],
+        })),
+      };
+
       await axios.put(
         `http://3.109.62.26/api/billing/clinic/pharmacy-bill/${id}/`,
-        { ...formData },
+        payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -269,7 +305,6 @@ const EditPharmacyBill = () => {
                   <h5 className="offcanvas-title fs-18 fw-bold mb-3">Edit Pharmacy Bill</h5>
                   <form onSubmit={handleSubmit}>
                     <div className="row">
-                      {/* Patient */}
                       <div className="col-lg-6 mb-3">
                         <label className="form-label">Patient *</label>
                         <select
@@ -288,7 +323,6 @@ const EditPharmacyBill = () => {
                         </select>
                       </div>
 
-                      {/* Bill Date */}
                       <div className="col-lg-6 mb-3">
                         <label className="form-label">Bill Date *</label>
                         <input
@@ -301,7 +335,6 @@ const EditPharmacyBill = () => {
                         />
                       </div>
 
-                      {/* Status */}
                       <div className="col-lg-6 mb-3">
                         <label className="form-label">Status *</label>
                         <select
@@ -318,7 +351,6 @@ const EditPharmacyBill = () => {
                       </div>
                     </div>
 
-                    {/* Items Section */}
                     {formData.items.map((item, index) => (
                       <div key={index} className="border p-3 mb-3 rounded bg-light">
                         <div className="d-flex justify-content-between mb-2">
@@ -331,7 +363,6 @@ const EditPharmacyBill = () => {
                         </div>
 
                         <div className="row">
-                          {/* Item Type */}
                           <div className="col-lg-3 mb-3">
                             <label className="form-label">Item Type *</label>
                             <select
@@ -347,7 +378,6 @@ const EditPharmacyBill = () => {
                             </select>
                           </div>
 
-                          {/* Medicine or Procedure */}
                           <div className="col-lg-3 mb-3">
                             <label className="form-label">
                               {item.item_type === "PROCEDURE" ? "Procedure" : "Medicine"} *
@@ -371,7 +401,6 @@ const EditPharmacyBill = () => {
                             </select>
                           </div>
 
-                          {/* Quantity */}
                           <div className="col-lg-3 mb-3">
                             <label className="form-label">Quantity *</label>
                             <input
@@ -385,27 +414,26 @@ const EditPharmacyBill = () => {
                             />
                           </div>
 
-                          {/* Subtotal */}
                           <div className="col-lg-3 mb-3">
                             <label className="form-label">Subtotal</label>
                             <input type="number" className="form-control" value={calculateSubtotal(item)} readOnly />
                           </div>
                         </div>
 
-                        {/* Procedure Payments */}
                         {item.item_type === "PROCEDURE" && item.procedure && (
                           <div className="border p-2 mb-3 rounded bg-light">
                             <h6 className="fw-bold">Procedure Payments</h6>
                             {item.procedure_payments?.map((payment, pIndex) => (
                               <div key={pIndex} className="d-flex gap-2 align-items-end mb-2">
                                 <div className="col">
-                                  <label className="form-label">Amount Paid</label>
+                                  <label className="form-label">Amount Paid *</label>
                                   <input
                                     type="number"
                                     name="amount_paid"
                                     className="form-control"
                                     value={payment.amount_paid}
                                     min={0}
+                                    required
                                     onChange={(e) => handleProcedurePaymentChange(index, pIndex, e)}
                                   />
                                 </div>
@@ -451,12 +479,6 @@ const EditPharmacyBill = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="footer text-center bg-white p-2 border-top">
-          <p className="text-dark mb-0">
-            2025 © <Link to="#" className="link-primary">Preclinic</Link>, All Rights Reserved
-          </p>
         </div>
       </div>
     </>

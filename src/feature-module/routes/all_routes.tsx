@@ -398,4 +398,6 @@ export const all_routes = {
     
     printPharmacyBill: "/clinic/pharmacy-bill/print/:billId",
 
+    procedurePayments: "/clinic-dashboard/patient-details/procedurepayment"
+
 };

@@ -303,7 +303,7 @@ import ClinicPharmacyBills from "../components/pages/clinic-billing/pharmacy-bil
 import ClinicEditPharmacyBill from "../components/pages/clinic-billing/edit-pharmacy-bill/editPharmacyBill";
 import ClinicViewPharmacyBill from "../components/pages/clinic-billing/view-pharmacy-bill/viewPharmacyBill";
 
-
+import ProcedurePayment from "../components/pages/clinic-modules/clinic-procedure-pendingbill/clinic-procedure-pendingbill"
 import ClinicPrescriptions from "../components/pages/clinic-modules/clinic-prescriptions/clinicPrescriptions";
 import ClinicPrescriptionDetails from "../components/pages/clinic-modules/clinic-prescription-details/clinicPrescriptionDetails";
 
@@ -1911,21 +1911,15 @@ export const authRoutes = [
   route: Route,
 },
 
-  
-
-
-
-
-
-
-
-
-
-
 
 {
  path: "/clinic/pharmacy-bill/print/:billId",
   element: <PrintPharmacyBill />,
+  route: Route,
+},
+{
+ path: "/clinic-dashboard/patient-details/procedurepayment/:Id",
+  element: <ProcedurePayment />,
   route: Route,
 },
 ];
