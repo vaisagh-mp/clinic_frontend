@@ -7,10 +7,15 @@ import DiagnosisForm from "../../../../../core/common/dynamic-list/diagnosisForm
 import MedicalForm from "../../../../../core/common/dynamic-list/medicalForm";
 import AdviceForm from "../../../../../core/common/dynamic-list/AdviceForm";
 import InvestigationList from "../../../../../core/common/dynamic-list/InvestigationForm";
-import type { InvestigationItem } from "../../../../../core/common/dynamic-list/InvestigationForm";
+import InvestigationForm from "../../../../../core/common/dynamic-list/InvestigationForm";
 import CommonSelect from "../../../../../core/common/common-select/commonSelect";
 import { empty_Stomach } from "../../../../../core/common/selectOption";
 import InvoiceList from "../../../../../core/common/dynamic-list/InvoiceList";
+
+interface InvestigationItem {
+  id: number;
+  value: string;
+}
 
 const AppointmentConsultations = () => {
 
@@ -354,11 +359,19 @@ const AppointmentConsultations = () => {
             </div>
             {/* end card header */}
             <div className="card-body invest-list pb-0">
-              <InvestigationList
-                value={investigations}
-                onChange={setInvestigations}
-              />
-            </div>
+  {investigations.map((item, index) => (
+    <InvestigationForm
+      key={item.id}
+      value={item.value}
+      onChange={(newValue) => {
+        const updated = [...investigations];
+        updated[index].value = newValue;
+        setInvestigations(updated);
+      }}
+    />
+  ))}
+</div>
+
 
             {/* end card body */}
           </div>
