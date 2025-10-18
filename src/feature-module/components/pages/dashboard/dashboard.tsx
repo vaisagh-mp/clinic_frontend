@@ -69,8 +69,17 @@ const Dashboard = () => {
   const series = [{ name: "Data", data: [40, 15, 60, 15, 90, 20, 70] }];
 
   const allDoctors = (dashboardData?.doctors || []).slice(0, 3);
-  const displayedPatients = (dashboardData?.patients || []).slice(0, 2);
-  const limitedAppointments = appointments.slice(0, 5); // 👈 Limit to 5 rows
+
+// Merge patient data — enrich dashboard patients with full info
+const displayedPatients = (dashboardData?.patients || [])
+  .slice(0, 2)
+  .map((p: any) => {
+    const fullInfo = patients.find((pt: any) => pt.id === p.id);
+    return { ...p, ...fullInfo }; // merge both objects
+  });
+
+const limitedAppointments = appointments.slice(0, 5);
+
 
   return (
     <div className="page-wrapper">

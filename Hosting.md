@@ -28,3 +28,6 @@ sudo cp -R dist/* /var/www/vhosts/react-frontend/
 
 # To Update changes in project
 `sudo nginx -t && sudo systemctl restart nginx`
+
+
+fpie nque luuj hyac

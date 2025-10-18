@@ -215,6 +215,7 @@ const OnlineConsultations = () => {
         attachmentUrl: appt.patient.attachment
         ? `http://3.109.62.26${appt.patient.attachment}`
         : null,
+        consultation_details: appt.consultation || null,
       });
 
       setFormData({
@@ -450,39 +451,93 @@ const OnlineConsultations = () => {
           </div>
         </div>
 
-        {/* Vitals */}
-        <div className="card rounded-0 mb-3">
-          <div className="card-header">
-            <h5 className="m-0 fw-bold"> Vitals </h5>
-          </div>
-          <div className="card-body pb-0">
-            <div className="row">
-              {[
-                "temperature",
-                "pulse",
-                "respiratory_rate",
-                "spo2",
-                "height",
-                "weight",
-                "bmi",
-                "waist",
-              ].map((field) => (
-                <div className="col-md-4 mb-3" key={field}>
-                  <label className="form-label mb-1 text-dark fs-14 fw-medium">
-                    {field.charAt(0).toUpperCase() + field.slice(1)}
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name={field}
-                    value={formData[field]}
-                    onChange={handleChange}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Consultation Summary */}
+{appointmentData.consultation_details && (
+  <div className="card rounded-0 mb-3">
+    <div className="card-header">
+      <h5 className="m-0 fw-bold">Previous Consultation Summary</h5>
+    </div>
+    <div className="card-body">
+      <div className="row">
+        <div className="col-md-6 mb-2">
+          <strong>Complaints:</strong>
+          <p className="m-0 text-dark">
+            {appointmentData.consultation_details.complaints || "N/A"}
+          </p>
         </div>
+        <div className="col-md-6 mb-2">
+          <strong>Diagnosis:</strong>
+          <p className="m-0 text-dark">
+            {appointmentData.consultation_details.diagnosis || "N/A"}
+          </p>
+        </div>
+        <div className="col-md-6 mb-2">
+          <strong>Advices:</strong>
+          <p className="m-0 text-dark">
+            {appointmentData.consultation_details.advices || "N/A"}
+          </p>
+        </div>
+        <div className="col-md-6 mb-2">
+          <strong>Investigations:</strong>
+          <p className="m-0 text-dark">
+  {appointmentData.consultation?.investigations &&
+  appointmentData.consultation.investigations.length > 0
+    ? appointmentData.consultation.investigations.map((inv: any, i: number) => (
+        <span key={i}>
+          {typeof inv === "object" ? JSON.stringify(inv) : inv}
+          {i < appointmentData.consultation!.investigations.length - 1 ? ", " : ""}
+        </span>
+      ))
+    : "N/A"}
+</p>
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
+        {/* Vitals */}
+       <div className="card rounded-0 mb-3">
+  <div className="card-header">
+    <h5 className="m-0 fw-bold"> Vitals </h5>
+  </div>
+  <div className="card-body pb-0">
+    <div className="row">
+      {[
+        "temperature",
+        "pulse",
+        "respiratory_rate",
+        "spo2",
+        "height",
+        "weight",
+        "bmi",
+        "waist",
+        "blood_pressure",
+        "heart_rate",
+      ].map((field) => (
+        <div className="col-md-4 mb-3" key={field}>
+          <label className="form-label mb-1 text-dark fs-14 fw-medium">
+            {field
+              .split("_")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ")}
+          </label>
+          <input
+            type="text"
+            className="form-control"
+            name={field}
+            value={formData[field] || ""}
+            onChange={handleChange}
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
 
         {/* Complaint, Diagnosis */}
         <div className="card rounded-0 mb-3">

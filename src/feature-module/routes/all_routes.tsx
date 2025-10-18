@@ -10,7 +10,7 @@ export const all_routes = {
   forgotpasswordcover: "/forgot-password-cover",
   forgotpasswordillustration: "/forgot-password-illustration",
   forgotpasswordbasic: "/forgot-password-basic",
-  resetpasswordcover: "/reset-password-cover",
+  resetpasswordcover: "/reset-password/:uidb64/:token",
   resetpasswordillustration: "/reset-password-illustration",
   resetpasswordbasic: "/reset-password-basic",
   emailverificationcover: "/email-verification-cover",
