@@ -321,6 +321,17 @@ setProcedures(procedureItems);
   fetchPatient();
 }, [id, navigate]);
 
+// ✅ Appointment pagination
+const [currentPage, setCurrentPage] = useState(1);
+const itemsPerPage = 5; // show 5 appointments per page
+
+
+// ✅ Pagination logic for appointments
+const indexOfLastItem = currentPage * itemsPerPage;
+const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+const currentAppointments = appointments.slice(indexOfFirstItem, indexOfLastItem);
+const totalPages = Math.ceil(appointments.length / itemsPerPage);
+
 
   return (
     <div className="page-wrapper">
@@ -386,12 +397,12 @@ setProcedures(procedureItems);
                       <span className="text-dark ms-1">{patient.phone}</span>
                     </p>
                     <span className="mx-2 text-light">|</span>
-                    <p className="mb-0 d-inline-flex align-items-center">
-                      <i className="ti ti-calendar-time me-1 text-dark" />
-                      Last Visited:
-                      <span className="text-dark ms-1">{patient.lastVisited}</span>
-                    </p>
-                  </div>
+                      <p className="mb-0 d-inline-flex align-items-center">
+                        <i className="ti ti-calendar-time me-1 text-dark" />
+                        Last Visited:
+                        <span className="text-dark ms-1">{patient.lastVisited}</span>
+                      </p>
+                    </div>
                 </div>
               </div>
             </div>
@@ -519,7 +530,7 @@ setProcedures(procedureItems);
           <tr>
             <th>Bill Number</th>
             <th>Procedure Name</th>
-            <th>Bill Date</th> {/* New Column */}
+            <th>Bill Date</th>
             <th>Doctor Name</th>
             <th>Subtotal</th>
             <th>Total Paid</th>
@@ -528,32 +539,43 @@ setProcedures(procedureItems);
         </thead>
         <tbody>
           {procedures.length > 0 ? (
-            procedures.map((proc) => (
-              <tr key={proc.id}>
-                <td>
-                  <Link
-                    to={`/clinic-dashboard/patient-details/procedurepayment/${proc.id}`}
-                    className="text-decoration-none"
-                  >
-                    {proc.bill_number}
-                  </Link>
-                </td>
-                <td>{proc.procedure_name}</td>
-                <td>{proc.bill_date || "N/A"}</td>
-                <td>{proc.doctor_name}</td>
-                <td>{proc.subtotal}</td>
-                <td>{proc.total_paid}</td>
-                <td>
-                  <span
-                    className={`badge fs-13 rounded fw-medium text-uppercase badge-soft-${
-                      Number(proc.balance_due) > 0 ? "danger" : "success"
-                    } text-${Number(proc.balance_due) > 0 ? "danger" : "success"}`}
-                  >
-                    {proc.balance_due}
-                  </span>
-                </td>
-              </tr>
-            ))
+            procedures.map((proc) => {
+              const formatCurrency = (value: number | string) => {
+                const num = Number(value) || 0;
+                return `₹${num.toLocaleString("en-IN")}`;
+              };
+
+              const isPending = Number(proc.balance_due) > 0;
+
+              return (
+                <tr key={proc.id}>
+                  <td>
+                    <Link
+                      to={`/clinic-dashboard/patient-details/procedurepayment/${proc.id}`}
+                      className="text-decoration-none"
+                    >
+                      {proc.bill_number}
+                    </Link>
+                  </td>
+                  <td>{proc.procedure_name}</td>
+                  <td>{proc.bill_date || "N/A"}</td>
+                  <td>{proc.doctor_name}</td>
+                  <td>{formatCurrency(proc.subtotal)}</td>
+                  <td>{formatCurrency(proc.total_paid)}</td>
+                  <td>
+                    <span
+                      className={`badge fs-13 rounded fw-medium text-uppercase badge-soft-${
+                        isPending ? "danger" : "success"
+                      } text-${isPending ? "danger" : "success"}`}
+                    >
+                      {isPending
+                        ? `${formatCurrency(proc.balance_due)}`
+                        : "Paid"}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })
           ) : (
             <tr>
               <td colSpan={7} className="text-center">
@@ -562,13 +584,10 @@ setProcedures(procedureItems);
             </tr>
           )}
         </tbody>
-
       </table>
     </div>
   </div>
 </div>
-
-
 
         {/* Appointments Table */}
         <div className="card mt-4">
@@ -591,8 +610,9 @@ setProcedures(procedureItems);
                   </tr>
                 </thead>
                 <tbody>
-                  {appointments.length > 0 ? (
-                    appointments.map((app) => (
+                  {currentAppointments.length > 0 ? (
+  currentAppointments.map((app) => (
+
                       <tr key={app.id}>
                         <td>{app.appointmentId}</td>
                         <td>{app.dateTime}</td>
@@ -655,6 +675,32 @@ setProcedures(procedureItems);
                   )}
                 </tbody>
               </table>
+
+              {/* ✅ Pagination Controls */}
+{appointments.length > itemsPerPage && (
+  <div className="d-flex justify-content-center align-items-center mt-3">
+    <button
+      className="btn btn-outline-primary btn-sm me-2"
+      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+      disabled={currentPage === 1}
+    >
+      <i className="ti ti-chevron-left" /> Previous
+    </button>
+
+    <span className="mx-2">
+      Page <strong>{currentPage}</strong> of {totalPages}
+    </span>
+
+    <button
+      className="btn btn-outline-primary btn-sm ms-2"
+      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+      disabled={currentPage === totalPages}
+    >
+      Next <i className="ti ti-chevron-right" />
+    </button>
+  </div>
+)}
+
             </div>
           </div>
         </div>

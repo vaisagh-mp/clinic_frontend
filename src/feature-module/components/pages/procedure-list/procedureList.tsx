@@ -104,7 +104,7 @@ const ProcedureList = () => {
     {
       title: "Price",
       dataIndex: "price",
-      render: (price: string) => `$${price}`,
+      render: (price: string) => `₹${price}`,
       sorter: (a: any, b: any) => parseFloat(a.price) - parseFloat(b.price),
     },
     {

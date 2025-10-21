@@ -265,7 +265,7 @@ const DoctorDahboard = () => {
                           <th>Status</th>
                         </tr>
                       </thead>
-                      <tbody>
+                     <tbody>
   {appointments.length > 0 ? (
     appointments
       .slice(0, 5) // Show only first 5 appointments
@@ -275,7 +275,21 @@ const DoctorDahboard = () => {
           <td>{appt.patient.first_name} {appt.patient.last_name}</td>
           <td>{appt.appointment_date} {appt.appointment_time}</td>
           <td>{appt.clinic.name}</td>
-          <td>{appt.status}</td>
+          <td>
+            <span
+              className={`fs-13 badge ${
+                appt.status.toUpperCase() === "CANCELLED"
+                  ? "badge-soft-danger text-danger"
+                  : appt.status.toUpperCase() === "SCHEDULED"
+                  ? "badge-soft-primary text-primary"
+                  : appt.status.toUpperCase() === "COMPLETED"
+                  ? "badge-soft-success text-success"
+                  : "badge-soft-warning text-warning"
+              } rounded fw-medium`}
+            >
+              {appt.status}
+            </span>
+          </td>
         </tr>
       ))
   ) : (
@@ -286,6 +300,7 @@ const DoctorDahboard = () => {
     </tr>
   )}
 </tbody>
+
                     </table>
                   </div>
                 </div>

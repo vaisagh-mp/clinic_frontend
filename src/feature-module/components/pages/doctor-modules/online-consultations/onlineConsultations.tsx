@@ -75,23 +75,24 @@ const OnlineConsultations = () => {
 
   // -------------------- Fetch Medicines --------------------
   useEffect(() => {
-    const fetchMedicines = async () => {
-      try {
-        const token = localStorage.getItem("access_token");
-        const response = await axios.get("http://3.109.62.26/api/billing/medicines/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const options = response.data.map((med: any) => ({
-          value: med.name,
-          label: med.name,
-        }));
-        setMedicineOptions(options);
-      } catch (error) {
-        console.error("Error fetching medicines:", error);
-      }
-    };
-    fetchMedicines();
-  }, []);
+  const fetchMedicines = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await axios.get("http://3.109.62.26/api/billing/medicines/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const options = response.data.map((med: any) => ({
+        value: med.name,
+        label: med.name,
+      }));
+      setMedicineOptions(options);
+    } catch (error) {
+      console.error("Error fetching medicines:", error);
+    }
+  };
+  fetchMedicines();
+}, []);
+
 
 
 
@@ -99,23 +100,24 @@ const OnlineConsultations = () => {
 
   // -------------------- Fetch Procedures --------------------
   useEffect(() => {
-    const fetchProcedures = async () => {
-      try {
-        const token = localStorage.getItem("access_token");
-        const response = await axios.get("http://3.109.62.26/api/billing/procedures/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const options = response.data.map((proc: any) => ({
-          value: proc.id,
-          label: proc.name,
-        }));
-        setProcedureOptions(options);
-      } catch (error) {
-        console.error("Error fetching procedures:", error);
-      }
-    };
-    fetchProcedures();
-  }, []);
+  const fetchProcedures = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await axios.get("http://3.109.62.26/api/billing/procedures/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const procOptions = response.data.map((proc: any) => ({
+        value: proc.id,
+        label: proc.name,
+      }));
+      setProcedureOptions(procOptions);
+    } catch (error) {
+      console.error("Error fetching procedures:", error);
+    }
+  };
+  fetchProcedures();
+}, []);
+
 
 
   const handleProcedureChange = (id: number, value: string) => {
@@ -330,7 +332,7 @@ const OnlineConsultations = () => {
   };
 
   if (!appointmentData) return <p>Loading consultation details...</p>;
-
+  const previousConsultations = appointmentData.previous_consultations || [];
   return (
     <div className="page-wrapper consultation-custom">
       <div className="content">
@@ -375,11 +377,11 @@ const OnlineConsultations = () => {
                   )}
 
                   {/* Allergies */}
-                  {appointmentData.allergies && appointmentData.allergies.trim() !== "" && (
+                  {/* {appointmentData.allergies && appointmentData.allergies.trim() !== "" && (
                     <p className="text-danger m-0">
                       <span className="text-body">Allergies:</span> {appointmentData.allergies}
                     </p>
-                  )}
+                  )} */}
 
                   {/* Last Visited */}
                   {appointmentData.last_visited && (
@@ -452,52 +454,108 @@ const OnlineConsultations = () => {
         </div>
 
         {/* Consultation Summary */}
-{appointmentData.consultation_details && (
+  {appointmentData.consultation_details && (
   <div className="card rounded-0 mb-3">
     <div className="card-header">
       <h5 className="m-0 fw-bold">Previous Consultation Summary</h5>
     </div>
+
     <div className="card-body">
       <div className="row">
+        {/* Complaints */}
         <div className="col-md-6 mb-2">
           <strong>Complaints:</strong>
           <p className="m-0 text-dark">
             {appointmentData.consultation_details.complaints || "N/A"}
           </p>
         </div>
+
+        {/* Diagnosis */}
         <div className="col-md-6 mb-2">
           <strong>Diagnosis:</strong>
           <p className="m-0 text-dark">
             {appointmentData.consultation_details.diagnosis || "N/A"}
           </p>
         </div>
+
+        {/* Advices */}
         <div className="col-md-6 mb-2">
           <strong>Advices:</strong>
           <p className="m-0 text-dark">
             {appointmentData.consultation_details.advices || "N/A"}
           </p>
         </div>
+
+        {/* Investigations */}
         <div className="col-md-6 mb-2">
           <strong>Investigations:</strong>
           <p className="m-0 text-dark">
-  {appointmentData.consultation?.investigations &&
-  appointmentData.consultation.investigations.length > 0
-    ? appointmentData.consultation.investigations.map((inv: any, i: number) => (
-        <span key={i}>
-          {typeof inv === "object" ? JSON.stringify(inv) : inv}
-          {i < appointmentData.consultation!.investigations.length - 1 ? ", " : ""}
-        </span>
-      ))
-    : "N/A"}
-</p>
-
-
+            {appointmentData.consultation?.investigations &&
+            appointmentData.consultation.investigations.length > 0
+              ? appointmentData.consultation.investigations.map((inv: any, i: number) => (
+                  <span key={i}>
+                    {typeof inv === "object" ? JSON.stringify(inv) : inv}
+                    {i < appointmentData.consultation!.investigations.length - 1 ? ", " : ""}
+                  </span>
+                ))
+              : "N/A"}
+          </p>
         </div>
+
+        {/* Remark (Behavior) */}
+        <div className="col-md-6 mb-2">
+  <strong>Remark (Behavior):</strong>
+  <p className="m-0 text-dark">
+    {appointmentData.consultation?.notes &&
+     appointmentData.consultation.notes.trim() !== ""
+      ? appointmentData.consultation.notes
+      : "No remarks available"}
+  </p>
+</div>
+
+        {/* Allergies */}
+        {appointmentData.allergies && appointmentData.allergies.trim() !== "" && (
+          <div className="col-md-6 mb-2">
+            <strong className="text-body">Allergies:</strong>
+            <p className="text-danger m-0">{appointmentData.allergies}</p>
+          </div>
+        )}
       </div>
+
+      {/* Previous Consultation History */}
+      {previousConsultations && previousConsultations.length > 0 && (
+        <>
+          <hr />
+          <h6 className="fw-bold">Past Consultations</h6>
+          {previousConsultations.map((consultation: any) => (
+            <div className="card mb-3" key={consultation.id}>
+              <div className="card-body">
+                <p><strong>Date:</strong> {consultation.date}</p>
+
+                {/* Remark (Behavior) */}
+                {consultation.notes && consultation.notes.trim() !== "" && (
+                  <p className="m-0">
+                    <strong>Remark (Behavior):</strong> {consultation.notes}
+                  </p>
+                )}
+
+                {/* Allergies */}
+                {consultation.allergies && consultation.allergies.trim() !== "" && (
+                  <p className="text-danger m-0">
+                    <span className="text-body fw-bold">Allergies:</span> {consultation.allergies}
+                  </p>
+                )}
+
+                <p><strong>Complaint:</strong> {consultation.complaints}</p>
+                <p><strong>Diagnosis:</strong> {consultation.diagnosis}</p>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   </div>
 )}
-
 
         {/* Vitals */}
        <div className="card rounded-0 mb-3">
@@ -535,6 +593,27 @@ const OnlineConsultations = () => {
         </div>
       ))}
     </div>
+  </div>
+</div>
+
+{/* Remark (Behavior) */}
+<div className="card rounded-0 mb-3">
+  <div className="card-header">
+    <h5 className="m-0 fw-bold"> Remark (Behavior) </h5>
+  </div>
+  <div className="card-body">
+    <textarea
+      id="notes"
+      className="form-control"
+      name="notes"
+      placeholder="Enter remarks or behavioral notes here..."
+      value={formData.notes || ""}
+      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+      rows={3}
+    />
+    <small className="text-muted">
+      Example: Patient appeared anxious, cooperative, or unresponsive.
+    </small>
   </div>
 </div>
 

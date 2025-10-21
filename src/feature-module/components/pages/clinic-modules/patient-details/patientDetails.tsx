@@ -26,6 +26,17 @@ interface Appointment {
   doctorId: number;
 }
 
+interface FlattenedProcedureItem {
+  id: number;
+  bill_number: string;
+  bill_date: string;
+  doctor_name: string;
+  procedure_name: string;
+  subtotal: number;
+  total_paid: number;
+  balance_due: number;
+}
+
 interface Patient {
   id: number;
   name: string;
@@ -38,6 +49,7 @@ interface Patient {
   lastVisited: string;
   careOf?: string;
   vitalSigns: VitalSigns;
+  attachmentUrl?: string | null;
 }
 
 const PatientDetails = () => {
@@ -65,137 +77,221 @@ const PatientDetails = () => {
   });
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [procedures, setProcedures] = useState<FlattenedProcedureItem[]>([]);
 
-  useEffect(() => {
+  // ✅ Upload file state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // --- Upload attachment handler
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      alert("Please select a file first!");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("attachment", selectedFile);
+
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      navigate("/login-cover");
+      return;
+    }
+
+    try {
+      await axios.patch(
+        `http://3.109.62.26/api/admin-panel/patients/${patient.id}/`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      alert("Attachment uploaded successfully!");
+      // Refetch patient to update attachment URL
+      fetchPatient();
+    } catch (err) {
+      console.error("Upload failed:", err);
+      alert("Failed to upload attachment.");
+    }
+  };
+
+  const fetchPatient = async () => {
   const token = localStorage.getItem("access_token");
   if (!token) {
     navigate("/login-cover");
     return;
   }
 
-  const fetchPatient = async () => {
-    try {
-      // --- Fetch patient by ID ---
-      const res = await axios.get(
-        `http://3.109.62.26/api/admin-panel/patients/${id}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = res.data || {};
+  try {
+    // --- 1️⃣ Patient Info
+    const res = await axios.get(
+      `http://3.109.62.26/api/admin-panel/patients/${id}/`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = res.data || {};
 
-      // --- Fetch appointments for this patient ---
-      const appointmentsRes = await axios.get(
-        `http://3.109.62.26/api/admin-panel/appointments/?patient_id=${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const appointmentsData = appointmentsRes.data || [];
+    // --- 2️⃣ Appointments
+    const appointmentsRes = await axios.get(
+      `http://3.109.62.26/api/admin-panel/appointments/?patient_id=${id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const appointmentsData = appointmentsRes.data || [];
 
-      // --- Get latest appointment date ---
-      const latestAppointment = appointmentsData.length
-      ? [...appointmentsData] // copy to avoid mutating original array
-          .sort((a: Appointment, b: Appointment) =>
-            new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
-          )[0]
-      : null;
+    // Map appointments for table
+    const mappedAppointments: Appointment[] = appointmentsData.map((item: any) => ({
+      id: item.id,
+      appointmentId: item.appointment_id,
+      dateTime:
+        item.appointment_date && item.appointment_time
+          ? new Date(`${item.appointment_date}T${item.appointment_time}`).toLocaleString(
+              "en-GB",
+              {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              }
+            )
+          : "N/A",
+      doctorName: item.doctor?.name || "N/A",
+      doctorImage: item.doctor?.profile_image
+        ? `http://3.109.62.26${item.doctor.profile_image}`
+        : "assets/img/doctors/doctor-01.jpg",
+      specialization: item.doctor?.specialization || "N/A",
+      clinic: item.clinic?.name || "N/A",
+      status: item.status || "N/A",
+      doctorId: item.doctor?.id || 0,
+    }));
 
-      // --- Get latest COMPLETED appointment date ---
-      const completedAppointments = appointmentsData.filter(
-        (item: any) => item.status === "COMPLETED"
-      );
+    setAppointments(mappedAppointments);
 
-      const latestCompletedAppointment = completedAppointments.length
-        ? [...completedAppointments].sort(
-            (a, b) =>
-              new Date(b.appointment_date + "T" + b.appointment_time).getTime() -
-              new Date(a.appointment_date + "T" + a.appointment_time).getTime()
-          )[0]
-        : null;
-        
+    // --- 3️⃣ Calculate lastVisited
+    const completedAppointments = appointmentsData.filter(
+      (a: any) => a.status === "COMPLETED"
+    );
 
-      // --- Fetch latest vital signs from admin API ---
-      const vitalRes = await axios.get(
-        `http://3.109.62.26/api/admin-panel/patient-vital-signs/?patient_id=${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const vitalData = vitalRes.data?.[0]?.vitalSigns || {
-        bloodPressure: "N/A",
-        heartRate: "N/A",
-        spo2: "N/A",
-        temperature: "N/A",
-        respiratoryRate: "N/A",
-        weight: "N/A",
-      };
-
-      // --- Set patient info ---
-      setPatient({
-        id: data.id || 0,
-        name:
-          data.first_name && data.last_name
-            ? `${data.first_name} ${data.last_name}`
-            : data.first_name || "N/A",
-        dob: data.dob || "N/A",
-        bloodGroup: data.blood_group || "N/A",
-        gender: data.gender || "N/A",
-        email: data.email || "N/A",
-        phone: data.phone_number || "N/A",
-        address: data.address || "N/A",
-        careOf: data.care_of || "N/A",
-        lastVisited: latestCompletedAppointment
-        ? new Date(`${latestCompletedAppointment.appointment_date}T${latestCompletedAppointment.appointment_time}`).toLocaleDateString("en-GB", {
+    const lastVisited =
+      completedAppointments.length > 0
+        ? new Date(
+            completedAppointments
+              .sort(
+                (a: any, b: any) =>
+                  new Date(b.appointment_date + "T" + b.appointment_time).getTime() -
+                  new Date(a.appointment_date + "T" + a.appointment_time).getTime()
+              )[0].appointment_date +
+              "T" +
+              completedAppointments[0].appointment_time
+          ).toLocaleString("en-GB", {
             day: "2-digit",
             month: "short",
             year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
           })
-        : "N/A",
-        vitalSigns: vitalData,
+        : "N/A";
+
+    // --- 4️⃣ Vital Signs
+    const vitalRes = await axios.get(
+      `http://3.109.62.26/api/admin-panel/patient-vital-signs/?patient_id=${id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const vitalData = vitalRes.data?.[0]?.vitalSigns || {
+      bloodPressure: "N/A",
+      heartRate: "N/A",
+      spo2: "N/A",
+      temperature: "N/A",
+      respiratoryRate: "N/A",
+      weight: "N/A",
+    };
+
+    // --- 5️⃣ Procedures (PatientDetails)
+const billingRes = await axios.get(
+  `http://3.109.62.26/api/billing/patient/${id}/`,  // ✅ filtered by patient
+  { headers: { Authorization: `Bearer ${token}` } }
+);
+
+
+const billingData = billingRes.data.results || billingRes.data || [];
+
+const procedureItems: FlattenedProcedureItem[] = [];
+
+billingData.forEach((bill: any) => {
+  const formattedBillDate = bill.bill_date
+    ? new Date(bill.bill_date).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "N/A";
+
+  // loop through items inside each bill
+  (bill.items || [])
+    .filter((item: any) => item.item_type === "PROCEDURE")
+    .forEach((item: any) => {
+      procedureItems.push({
+        id: item.id,
+        bill_number: bill.bill_number || "N/A",
+        bill_date: formattedBillDate,
+        doctor_name: bill.doctor_name || "N/A",
+        procedure_name: item.procedure || "N/A",
+        subtotal: Number(item.subtotal || item.unit_price || 0),
+        total_paid: Number(item.total_paid || 0),
+        balance_due: Number(item.balance_due || 0),
       });
+    });
+});
 
-      // --- Set appointments table ---
-      setAppointments(
-        appointmentsData.map((item: any) => ({
-          id: item.id,
-          appointmentId: item.appointment_id,
-          dateTime:
-            item.appointment_date && item.appointment_time
-              ? new Date(
-                  `${item.appointment_date}T${item.appointment_time}`
-                ).toLocaleString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })
-              : "N/A",
-          doctorName: item.doctor?.name || "N/A",
-          doctorImage: item.doctor?.profile_image
-            ? `http://3.109.62.26${item.doctor.profile_image}`
-            : "assets/img/doctors/doctor-01.jpg",
-          specialization: item.doctor?.specialization || "N/A",
-          clinic: item.clinic?.name || "N/A",
-          status: item.status || "N/A",
-          doctorId: item.doctor?.id || 0,
-        }))
-      );
-    } catch (err) {
-      console.error(
-        "Error fetching patient, appointment or vital signs data:",
-        err
-      );
-    }
-  };
-
-  fetchPatient();
-}, [id, navigate]);
+setProcedures(procedureItems);
 
 
+    // --- 6️⃣ Set Patient State
+    setPatient({
+      id: data.id || 0,
+      name:
+        data.first_name && data.last_name
+          ? `${data.first_name} ${data.last_name}`
+          : data.first_name || "N/A",
+      dob: data.dob || "N/A",
+      bloodGroup: data.blood_group || "N/A",
+      gender: data.gender || "N/A",
+      email: data.email || "N/A",
+      phone: data.phone_number || "N/A",
+      address: data.address || "N/A",
+      careOf: data.care_of || "N/A",
+      lastVisited, // ✅ dynamically calculated
+      vitalSigns: vitalData,
+      attachmentUrl: data.attachment ? `${data.attachment}` : null,
+    });
+  } catch (err) {
+    console.error("Error fetching data:", err);
+  }
+};
 
 
+  useEffect(() => {
+    fetchPatient();
+  }, [id, navigate]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5; // show 5 appointments per page
+
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentAppointments = appointments.slice(indexOfFirstItem, indexOfLastItem);
+
+  const totalPages = Math.ceil(appointments.length / itemsPerPage);
   return (
     <div className="page-wrapper">
       <div className="content">
-        {/* Page Header */}
+        {/* Header & Patient Card */}
         <div className="mb-4">
           <h6 className="fw-bold mb-0 d-flex align-items-center">
             <Link to={all_routes.patients} className="text-dark">
@@ -205,7 +301,6 @@ const PatientDetails = () => {
           </h6>
         </div>
 
-        {/* Patient Card */}
         <div className="card">
           <div className="row align-items-end">
             <div className="col-xl-9 col-lg-8">
@@ -215,10 +310,7 @@ const PatientDetails = () => {
                   alt="img"
                   className="z-n1 position-absolute end-0 top-0 d-none d-lg-flex"
                 />
-                <Link
-                  to="#"
-                  className="avatar avatar-xxxl patient-avatar me-2 flex-shrink-0"
-                >
+                <Link to="#" className="avatar avatar-xxxl patient-avatar me-2 flex-shrink-0">
                   <ImageWithBasePath
                     src="assets/img/users/user-08.jpg"
                     alt="product"
@@ -228,46 +320,77 @@ const PatientDetails = () => {
                 <div>
                   <p className="text-primary mb-1">#PT{patient.id}</p>
                   <h5 className="mb-1">
-                    <Link to="#" className="fw-bold">
-                      {patient.name}
-                    </Link>
+                    <Link to="#" className="fw-bold">{patient.name}</Link>
                   </h5>
                   <p className="mb-3">{patient.address}</p>
                   <div className="d-flex align-items-center flex-wrap">
-                    {patient.careOf && patient.careOf !== "N/A" && (
-                      <>
-                        <p className="mb-0 d-inline-flex align-items-center me-3">
-                          <i className="ti ti-user me-1 text-dark" />
-                          Care Of:
-                          <span className="text-dark ms-1">{patient.careOf}</span>
-                        </p>
-                        <span className="mx-2 text-light">|</span>
-                      </>
-                    )}
-                    <p className="mb-0 d-inline-flex align-items-center">
-                      <i className="ti ti-phone me-1 text-dark" />
-                      Phone:
-                      <span className="text-dark ms-1">{patient.phone}</span>
-                    </p>
-                    <span className="mx-2 text-light">|</span>
-                    <p className="mb-0 d-inline-flex align-items-center">
-                      <i className="ti ti-calendar-time me-1 text-dark" />
-                      Last Visited:
-                      <span className="text-dark ms-1">{patient.lastVisited}</span>
-                    </p>
-                  </div>
+  {patient.careOf && patient.careOf !== "N/A" && (
+    <>
+      <p className="mb-0 d-inline-flex align-items-center me-3">
+        <i className="ti ti-user me-1 text-dark" />
+        Care Of:
+        <span className="text-dark ms-1">{patient.careOf}</span>
+      </p>
+      <span className="mx-2 text-light">|</span>
+    </>
+  )}
+
+  {patient.phone && (
+    <>
+      <p className="mb-0 d-inline-flex align-items-center me-3">
+        <i className="ti ti-phone me-1 text-dark" />
+        Phone:
+        <span className="text-dark ms-1">{patient.phone}</span>
+      </p>
+      <span className="mx-2 text-light">|</span>
+    </>
+  )}
+
+  {patient.lastVisited && (
+  <p className="mb-0 d-inline-flex align-items-center">
+    <i className="ti ti-calendar-time me-1 text-dark" />
+    Last Visited:
+    <span className="text-dark ms-1">{patient.lastVisited}</span>
+  </p>
+)}
+
+</div>
+
+
+                 
                 </div>
               </div>
             </div>
+
             <div className="col-xl-3 col-lg-4 text-lg-end p-3">
-              <Link
-                to={`${all_routes.newAppointment}?patient_id=${patient.id}`}
-                className="btn btn-primary"
-              >
-                <i className="ti ti-calendar-event me-1" />
-                Book Appointment
-              </Link>
-            </div>
+  <form onSubmit={handleUpload}>
+    <input
+      type="file"
+      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+      className="form-control mb-2"
+    />
+    <div className="d-flex gap-2">
+      <button type="submit" className="btn btn-primary">
+        <i className="ti ti-upload me-1" />
+        Upload Attachment
+      </button>
+
+      {/* ✅ View button */}
+      {patient.attachmentUrl && (
+        <a
+          href={patient.attachmentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-secondary"
+        >
+          <i className="ti ti-eye me-1" />
+          View
+        </a>
+      )}
+    </div>
+  </form>
+</div>
+
           </div>
         </div>
 
@@ -346,7 +469,74 @@ const PatientDetails = () => {
           </div>
         </div>
 
-        {/* Appointments Table */}
+        {/* Procedures Table */}
+       <div className="card mt-4">
+  <div className="card-header">
+    <h5 className="fw-bold mb-0">
+      <i className="ti ti-file-text me-1" /> Procedures
+    </h5>
+  </div>
+  <div className="card-body">
+    <div className="table-responsive">
+      <table className="table datatable table-nowrap align-middle">
+        <thead>
+          <tr>
+            <th>Bill Number</th>
+            <th>Procedure Name</th>
+            <th>Bill Date</th>
+            <th>Doctor Name</th>
+            <th>Subtotal</th>
+            <th>Total Paid</th>
+            <th>Balance Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          {procedures.length > 0 ? (
+            procedures.map((proc) => {
+              const formatCurrency = (amount: number) =>
+                `₹${amount.toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`;
+
+              const balanceBadgeColor =
+                proc.balance_due > 0 ? "danger" : "success";
+              const balanceText =
+                proc.balance_due > 0 ? "Pending" : "Paid";
+
+              return (
+                <tr key={proc.id}>
+                  <td>{proc.bill_number}</td>
+                  <td>{proc.procedure_name}</td>
+                  <td>{proc.bill_date}</td>
+                  <td>{proc.doctor_name}</td>
+                  <td>{formatCurrency(proc.subtotal)}</td>
+                  <td>{formatCurrency(proc.total_paid)}</td>
+                  <td>
+                    <span
+                      className={`badge fs-13 rounded fw-medium text-uppercase badge-soft-${balanceBadgeColor} text-${balanceBadgeColor}`}
+                    >
+                      {formatCurrency(proc.balance_due)}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })
+          ) : (
+            <tr>
+              <td colSpan={7} className="text-center">
+                No procedures available
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+       {/* Appointments Table */}
         <div className="card mt-4">
           <div className="card-header">
             <h5 className="fw-bold mb-0">
@@ -367,8 +557,8 @@ const PatientDetails = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {appointments.length > 0 ? (
-                    appointments.map((app) => (
+                  {currentAppointments.length > 0 ? (
+  currentAppointments.map((app) => (
                       <tr key={app.id}>
                         <td>{app.appointmentId || `APT-${app.id}`}</td> 
                         <td>{app.dateTime}</td>
@@ -430,6 +620,32 @@ const PatientDetails = () => {
                   )}
                 </tbody>
               </table>
+
+              {/* Pagination Controls */}
+{appointments.length > itemsPerPage && (
+  <div className="d-flex justify-content-center align-items-center mt-3">
+    <button
+      className="btn btn-outline-primary btn-sm me-2"
+      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+      disabled={currentPage === 1}
+    >
+      <i className="ti ti-chevron-left" /> Previous
+    </button>
+
+    <span className="mx-2">
+      Page <strong>{currentPage}</strong> of {totalPages}
+    </span>
+
+    <button
+      className="btn btn-outline-primary btn-sm ms-2"
+      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+      disabled={currentPage === totalPages}
+    >
+      Next <i className="ti ti-chevron-right" />
+    </button>
+  </div>
+)}
+
             </div>
           </div>
         </div>
@@ -438,10 +654,7 @@ const PatientDetails = () => {
         <div className="footer text-center bg-white p-2 border-top">
           <p className="text-dark mb-0">
             2025 ©
-            <Link to="#" className="link-primary">
-              Preclinic
-            </Link>
-            , All Rights Reserved
+            <Link to="#" className="link-primary">Preclinic</Link>, All Rights Reserved
           </p>
         </div>
       </div>

@@ -24,6 +24,7 @@ interface Medicine {
   id: number;
   name: string;
   unit_price: string;
+  stock: number;
 }
 
 interface Procedure {
@@ -81,6 +82,12 @@ const AddPharmacyBill = () => {
     fetchData();
   }, []);
 
+  const [modalMessage, setModalMessage] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const closeModal = () => setShowModal(false);
+
+
   const calculateSubtotal = (item: Item) => {
   if (item.item_type === "MEDICINE" && item.medicine) {
     const med = medicines.find((m) => m.id === item.medicine);
@@ -117,6 +124,16 @@ const AddPharmacyBill = () => {
       updated[index].procedure = null;
       updated[index].procedure_payments = [];
     }
+
+    // Check stock if medicine is selected
+    if (name === "medicine" && value) {
+      const med = medicines.find((m) => m.id === Number(value));
+      if (med && med.stock < 3) {
+        setModalMessage(`Warning: Stock for "${med.name}" is low (${med.stock} left)!`);
+        setShowModal(true);
+      }
+    }
+
 
     setFormData({ ...formData, items: updated });
   };
@@ -449,10 +466,32 @@ const AddPharmacyBill = () => {
                   </form>
                 </div>
               </div>
+              {showModal && (
+                  <div className="modal fade show d-block" tabIndex={-1} role="dialog">
+                    <div className="modal-dialog" role="document">
+                      <div className="modal-content">
+                        <div className="modal-header">
+                          <h5 className="modal-title">Low Stock Warning</h5>
+                          <button type="button" className="btn-close" onClick={closeModal}></button>
+                        </div>
+                        <div className="modal-body">
+                          <p>{modalMessage}</p>
+                        </div>
+                        <div className="modal-footer">
+                          <button type="button" className="btn btn-primary" onClick={closeModal}>
+                            OK
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="modal show"></div>
+                  </div>
+                )}
+
             </div>
           </div>
         </div>
-
+                    
         <div className="footer text-center bg-white p-2 border-top">
           <p className="text-dark mb-0">
             2025 © <Link to="#" className="link-primary">Preclinic</Link>, All Rights Reserved
