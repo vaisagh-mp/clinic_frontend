@@ -7,6 +7,9 @@ import Modals from "./modals/modals";
 import axios from "axios";
 import Header from "../../../../../core/common/header/header";
 import Sidebar from "../../../../../core/common/sidebar/sidebarAdmin";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 
 // Axios instance with interceptors
 const api = axios.create({
@@ -81,6 +84,25 @@ const ClinicBills = () => {
 
     fetchBills();
   }, [navigate, token]);
+
+  // Export as Excel
+const exportExcel = () => {
+  const worksheetData = data.map(bill => ({
+    "Bill Number": bill.bill_number || "",
+    "Bill Date": bill.bill_date || "",
+    "Vendor Name": bill.vendor_name || "",
+    "Clinic": bill.clinic_name || "",
+    "Total Amount": bill.total_amount || 0,
+    "Status": bill.status || ""
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "ClinicBills");
+  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+  saveAs(blob, "ClinicBills.xlsx");
+};
 
   // Handle Delete
   const handleDelete = async () => {
@@ -224,13 +246,34 @@ const ClinicBills = () => {
             </div>
           </div>
 
-          {/* Search */}
-          <div className="table-search mb-3">
-            <SearchInput
-              value={searchText}
-              onChange={(value) => setSearchText(value)}
-            />
+          {/* Search + Export */}
+          <div className="d-flex align-items-center justify-content-between mb-3">
+            {/* Search Input */}
+            <div className="table-search mb-3">
+              <SearchInput
+                value={searchText}
+                onChange={(value) => setSearchText(value)}
+              />
+            </div>
+          
+            {/* Export Dropdown */}
+            <div className="dropdown">
+              <button
+                className="btn btn-md fs-14 fw-normal border bg-white rounded text-dark d-inline-flex align-items-center"
+                data-bs-toggle="dropdown"
+              >
+                Export <i className="ti ti-chevron-down ms-2" />
+              </button>
+              <ul className="dropdown-menu p-2">
+                <li>
+                  <button className="dropdown-item" type="button" onClick={exportExcel}>
+                    Download as Excel
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
+
 
           {/* Table */}
           {loading ? (

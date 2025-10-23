@@ -7,6 +7,9 @@ import Datatable from "../../../../../core/common/dataTable";
 import Modals from "./modals/modals";
 import Header from "../../../../../core/common/header/header";
 import Sidebar from "../../../../../core/common/sidebar/sidebarAdmin";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 
 // Axios instance with token refresh
 const api = axios.create({
@@ -77,7 +80,7 @@ const PharmacyBills = () => {
           ...b,
           total_amount: parseFloat(b.total_amount) || 0,
           clinic_name: b.clinic || "N/A",
-          patient_name: b.patient || "N/A",
+          patient_name: b.patient?.name || "N/A",
         }));
 
         setData(formattedBills);
@@ -91,6 +94,28 @@ const PharmacyBills = () => {
 
     fetchBills();
   }, [navigate, token]);
+
+  // Export table data to Excel
+const exportExcel = () => {
+  const worksheetData = data.map((bill) => ({
+    "Bill Number": bill.bill_number || "",
+    "Clinic": bill.clinic_name || "",
+    "Patient": bill.patient_name || "",
+    "Bill Date": bill.bill_date
+      ? new Date(bill.bill_date).toLocaleDateString()
+      : "",
+    "Total Amount": bill.total_amount || 0,
+    "Status": bill.status || "",
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "PharmacyBills");
+  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+  saveAs(blob, "PharmacyBills.xlsx");
+};
+
 
   // Handle Delete
   const handleDelete = async () => {
@@ -229,12 +254,32 @@ const PharmacyBills = () => {
             </div>
           </div>
 
-          {/* Search */}
-          <div className="table-search mb-3">
-            <SearchInput
-              value={searchText}
-              onChange={(value) => setSearchText(value)}
-            />
+          {/* Search + Export */}
+          <div className="d-flex align-items-center justify-content-between mb-3">
+            {/* Search Input */}
+            <div className="table-search mb-3">
+              <SearchInput
+                value={searchText}
+                onChange={(value) => setSearchText(value)}
+              />
+            </div>
+          
+            {/* Export Dropdown */}
+            <div className="dropdown">
+              <button
+                className="btn btn-md fs-14 fw-normal border bg-white rounded text-dark d-inline-flex align-items-center"
+                data-bs-toggle="dropdown"
+              >
+                Export <i className="ti ti-chevron-down ms-2" />
+              </button>
+              <ul className="dropdown-menu p-2">
+                <li>
+                  <button className="dropdown-item" type="button" onClick={exportExcel}>
+                    Download as Excel
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
 
           {/* Table */}

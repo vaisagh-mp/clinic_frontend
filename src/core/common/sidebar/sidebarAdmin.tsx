@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setExpandMenu, setMobileSidebar } from "../../redux/sidebarSlice";
 import { updateTheme } from "../../redux/themeSlice";
 import { all_routes } from "../../../feature-module/routes/all_routes";
+import SidebarTop from "./SidebarTop";
 
 
 const Sidebar = () => {
@@ -154,119 +155,7 @@ const Sidebar = () => {
         {/* Sidenav Menu */}
         <div className="sidebar-inner" data-simplebar="">
           <div id="sidebar-menu" className="sidebar-menu">
-            {/* <div className="sidebar-top shadow-sm p-2 rounded-1 mb-3 dropend">
-              <Link
-                to="#"
-                className="drop-arrow-none"
-                data-bs-toggle="dropdown"
-                data-bs-auto-close="outside"
-                data-bs-offset="0,22"
-                aria-haspopup="false"
-                aria-expanded="false"
-              >
-                <div className="d-flex justify-content-between align-items-center">
-                  <div className="d-flex align-items-center">
-                    <span className="avatar rounded-circle flex-shrink-0 p-2">
-                      <ImageWithBasePath
-                        src="./assets/img/icons/trustcare.svg"
-                        alt="img"
-                      />
-                    </span>
-                    <div className="ms-2">
-                      <h6 className="fs-14 fw-semibold mb-0">
-                        Trustcare Clinic
-                      </h6>
-                      <p className="fs-13 mb-0">Lasvegas</p>
-                    </div>
-                  </div>
-                  <i className="ti ti-arrows-transfer-up" />
-                </div>
-              </Link>
-              <div className="dropdown-menu dropdown-menu-lg">
-                <div className="p-2">
-                  <label className="dropdown-item d-flex align-items-center justify-content-between p-1">
-                    <span className="d-flex align-items-center">
-                      <span className="me-2">
-                        <ImageWithBasePath
-                          src="assets/img/icons/clinic-01.svg"
-                          alt=""
-                        />
-                      </span>
-                      <span className="fw-semibold text-dark">
-                        CureWell Medical Hub
-                        <small className="d-block text-muted fw-normal fs-13">
-                          Ohio
-                        </small>
-                      </span>
-                    </span>
-                    <input
-                      className="form-check-input m-0 me-2"
-                      type="checkbox"
-                    />
-                  </label>
-                  <label className="dropdown-item d-flex align-items-center justify-content-between p-1">
-                    <span className="d-flex align-items-center">
-                      <span className="me-2">
-                        <ImageWithBasePath
-                          src="assets/img/icons/clinic-02.svg"
-                          alt=""
-                        />
-                      </span>
-                      <span className="fw-semibold text-dark">
-                        Trustcare Clinic
-                        <small className="d-block text-muted fw-normal fs-13">
-                          Lasvegas
-                        </small>
-                      </span>
-                    </span>
-                    <input
-                      className="form-check-input m-0 me-2"
-                      type="checkbox"
-                    />
-                  </label>
-                  <label className="dropdown-item d-flex align-items-center justify-content-between p-1">
-                    <span className="d-flex align-items-center">
-                      <span className="me-2">
-                        <ImageWithBasePath
-                          src="assets/img/icons/clinic-03.svg"
-                          alt=""
-                        />
-                      </span>
-                      <span className="fw-semibold text-dark">
-                        NovaCare Medical
-                        <small className="d-block text-muted fw-normal fs-13">
-                          Washington
-                        </small>
-                      </span>
-                    </span>
-                    <input
-                      className="form-check-input m-0 me-2"
-                      type="checkbox"
-                    />
-                  </label>
-                  <label className="dropdown-item d-flex align-items-center justify-content-between p-1">
-                    <span className="d-flex align-items-center">
-                      <span className="me-2">
-                        <ImageWithBasePath
-                          src="assets/img/icons/clinic-04.svg"
-                          alt=""
-                        />
-                      </span>
-                      <span className="fw-semibold text-dark">
-                        Greeny Medical Clinic
-                        <small className="d-block text-muted fw-normal fs-13">
-                          Illinios
-                        </small>
-                      </span>
-                    </span>
-                    <input
-                      className="form-check-input m-0 me-2"
-                      type="checkbox"
-                    />
-                  </label>
-                </div>
-              </div>
-            </div> */}
+            {/* <SidebarTop /> */}
             <ul>
               {SidebarData?.map((mainLabel, index) => (
                 <React.Fragment key={`main-${index}`}>

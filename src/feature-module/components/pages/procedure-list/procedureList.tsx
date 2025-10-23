@@ -6,6 +6,8 @@ import Datatable from "../../../../core/common/dataTable";
 import axios from "axios";
 import Header from "../../../../core/common/header/header";
 import Sidebarthree from "../../../../core/common/sidebarthree/sidebarthree";
+import * as XLSX from "xlsx";
+
 
 // Axios instance with base URL
 const api = axios.create({
@@ -96,6 +98,32 @@ const ProcedureList = () => {
     }
   };
 
+  const downloadExcel = () => {
+  if (!data || data.length === 0) {
+    alert("No procedure data available to download.");
+    return;
+  }
+
+  // Get clinic name dynamically (replace spaces with underscores)
+  const clinicName = data[0]?.clinic?.name?.replace(/\s+/g, "_") || "Clinic";
+
+  // Format data for Excel
+  const formattedData = data.map((item) => ({
+    "ID": item.id,
+    "Name": item.name,
+    "Description": item.description,
+    "Price": item.price,
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(formattedData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Procedures");
+
+  const filename = `${clinicName}_Procedures_List.xlsx`;
+  XLSX.writeFile(workbook, filename);
+};
+
+
   // Datatable columns
   const columns = [
     { title: "ID", dataIndex: "id", sorter: (a: any, b: any) => a.id - b.id },
@@ -165,10 +193,33 @@ const ProcedureList = () => {
             </div>
           </div>
 
-          {/* Search */}
-          <div className="table-search mb-3">
-            <SearchInput value={searchText} onChange={(value) => setSearchText(value)} />
-          </div>
+           {/* Search + Export */}
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                      {/* Search Input */}
+                      <div className="table-search mb-3">
+                        <SearchInput
+                          value={searchText}
+                          onChange={(value) => setSearchText(value)}
+                        />
+                      </div>
+                    
+                      {/* Export Dropdown */}
+                      <div className="dropdown">
+                        <button
+                          className="btn btn-md fs-14 fw-normal border bg-white rounded text-dark d-inline-flex align-items-center"
+                          data-bs-toggle="dropdown"
+                        >
+                          Export <i className="ti ti-chevron-down ms-2" />
+                        </button>
+                        <ul className="dropdown-menu p-2">
+                          <li>
+                            <button className="dropdown-item" type="button" onClick={downloadExcel}>
+                              Download as Excel
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
 
           {/* Table */}
           {loading ? (

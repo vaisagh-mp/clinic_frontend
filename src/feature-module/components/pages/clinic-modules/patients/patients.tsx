@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router";
 import Datatable from "../../../../../core/common/dataTable";
 import SearchInput from "../../../../../core/common/dataTable/dataTableSearch";
 import { all_routes } from "../../../../routes/all_routes";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 const Patients = () => {
   const [data, setData] = useState<any[]>([]);
@@ -40,6 +42,30 @@ const Patients = () => {
 
     fetchPatients();
   }, [navigate]);
+
+
+  // ✅ Download as Excel
+  const handleDownloadExcel = () => {
+    if (!data.length) return alert("No patient data available to download!");
+
+    // Format data
+    const exportData = data.map((p) => ({
+      "First Name": p.first_name || "",
+      "Care Of": p.care_of || "",
+      "Phone": p.phone_number || "",
+      "Email": p.email || "",
+      "Clinic": p.clinic || "",
+      "DOB": p.dob || "",
+      "Blood Group": p.blood_group || "",
+      "Address": p.address || "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Patients");
+
+    XLSX.writeFile(workbook, "Patients_List.xlsx");
+  };
 
   // Delete patient
   const handleDeletePatient = async () => {
@@ -188,9 +214,33 @@ const Patients = () => {
           </div>
         </div>
 
-        <div className="table-search mb-3">
-          <SearchInput value={searchText} onChange={handleSearch} />
-        </div>
+        {/* Search + Export */}
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                      {/* Search Input */}
+                      <div className="table-search mb-3">
+                        <SearchInput
+                          value={searchText}
+                          onChange={(value) => setSearchText(value)}
+                        />
+                      </div>
+                    
+                      {/* Export Dropdown */}
+                      <div className="dropdown">
+                        <button
+                          className="btn btn-md fs-14 fw-normal border bg-white rounded text-dark d-inline-flex align-items-center"
+                          data-bs-toggle="dropdown"
+                        >
+                          Export <i className="ti ti-chevron-down ms-2" />
+                        </button>
+                        <ul className="dropdown-menu p-2">
+                          <li>
+                            <button className="dropdown-item" type="button" onClick={handleDownloadExcel}>
+                              Download as Excel
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
 
         <div className="table-responsive">
           <Datatable

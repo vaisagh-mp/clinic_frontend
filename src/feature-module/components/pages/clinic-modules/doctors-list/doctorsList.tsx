@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import SearchInput from "../../../../../core/common/dataTable/dataTableSearch";
 import Datatable from "../../../../../core/common/dataTable";
 import axios from "axios";
+import * as XLSX from "xlsx";
 
 const DoctorsList = () => {
   const navigate = useNavigate();
@@ -64,6 +65,37 @@ const DoctorsList = () => {
 
     fetchDoctors();
   }, [navigate]);
+
+  // ✅ Download Excel function
+  const handleDownloadExcel = () => {
+    if (!data.length) {
+      alert("No doctor data available to download!");
+      return;
+    }
+
+    // Prepare clean data
+    const exportData = data.map((doc) => ({
+      Name: doc.name,
+      Specialization: doc.specialization,
+      Username: doc.username,
+      "Phone Number": doc.phone_number,
+      Email: doc.email,
+      Clinic: doc.clinic,
+      "Years of Experience": doc.years_of_experience,
+      "Medical License": doc.medical_license_number,
+      "Blood Group": doc.blood_group,
+      Gender: doc.gender,
+      Address: doc.address,
+    }));
+
+    // Convert JSON to worksheet
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Doctors");
+
+    // Download file
+    XLSX.writeFile(workbook, "Doctors_List.xlsx");
+  };
 
   // Delete doctor
   const handleDeleteDoctor = async () => {
@@ -240,9 +272,33 @@ const DoctorsList = () => {
             </div>
           </div>
 
-          <div className="table-search d-flex align-items-center justify-content-between flex-wrap row-gap-3 mb-3">
-            <SearchInput value={searchText} onChange={handleSearch} />
-          </div>
+          {/* Search + Export */}
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                      {/* Search Input */}
+                      <div className="table-search mb-3">
+                        <SearchInput
+                          value={searchText}
+                          onChange={(value) => setSearchText(value)}
+                        />
+                      </div>
+                    
+                      {/* Export Dropdown */}
+                      <div className="dropdown">
+                        <button
+                          className="btn btn-md fs-14 fw-normal border bg-white rounded text-dark d-inline-flex align-items-center"
+                          data-bs-toggle="dropdown"
+                        >
+                          Export <i className="ti ti-chevron-down ms-2" />
+                        </button>
+                        <ul className="dropdown-menu p-2">
+                          <li>
+                            <button className="dropdown-item" type="button" onClick={handleDownloadExcel}>
+                              Download as Excel
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
 
           <div className="table-responsive">
             <Datatable

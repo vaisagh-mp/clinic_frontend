@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate  } from "react-router-dom";
 import { all_routes } from "../../../routes/all_routes";
 import axios from "axios";
 import ImageWithBasePath from "../../../../core/imageWithBasePath";
 
 const ForgotPasswordCover = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -17,7 +18,7 @@ const ForgotPasswordCover = () => {
       await axios.post("http://3.109.62.26/api/accounts/forgot-password/", { email });
       alert("Password reset link sent to your email!");
       // Optionally navigate to another page
-      // navigate(all_routes.emailverificationcover);
+      navigate(all_routes.emailverificationcover);
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to send reset email.");
     } finally {

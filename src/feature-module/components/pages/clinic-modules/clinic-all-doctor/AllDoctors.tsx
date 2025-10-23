@@ -5,6 +5,7 @@ import SearchInput from "../../../../../core/common/dataTable/dataTableSearch";
 import Datatable from "../../../../../core/common/dataTable";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import axios from "axios";
+import * as XLSX from "xlsx";
 
 const AllDoctors = () => {
  const navigate = useNavigate();
@@ -79,6 +80,44 @@ const AllDoctors = () => {
       setLoading(false);
     }
   };
+
+  // ✅ Download Excel function
+  const handleDownloadExcel = () => {
+  if (data.length === 0) {
+    alert("No doctor data available to download.");
+    return;
+  }
+
+  // Try to extract clinic name from localStorage or first doctor record
+  const clinicName =
+    localStorage.getItem("clinic_name") ||
+    data[0]?.clinic_name ||
+    "Clinic";
+
+  // Format name safely (remove spaces/special chars)
+  const safeClinicName = clinicName.replace(/[^a-zA-Z0-9]/g, "_");
+
+  const exportData = data.map((doc) => ({
+    Name: doc.name,
+    Username: doc.username,
+    Specialization: doc.specialization,
+    Phone: doc.phone_number,
+    Email: doc.email,
+    Experience: doc.years_of_experience,
+    MedicalLicense: doc.medical_license_number,
+    BloodGroup: doc.blood_group,
+    Gender: doc.gender,
+    Address: doc.address,
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Doctors");
+
+  // ✅ dynamic file name
+  XLSX.writeFile(workbook, `${safeClinicName}_Doctors_List.xlsx`);
+};
+
 
   const columns = [
     {
@@ -179,9 +218,33 @@ const AllDoctors = () => {
             </div>
           </div>
 
-          <div className="table-search d-flex align-items-center justify-content-between flex-wrap row-gap-3 mb-3">
-            <SearchInput value={searchText} onChange={handleSearch} />
-          </div>
+          {/* Search + Export */}
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                      {/* Search Input */}
+                      <div className="table-search mb-3">
+                        <SearchInput
+                          value={searchText}
+                          onChange={(value) => setSearchText(value)}
+                        />
+                      </div>
+                    
+                      {/* Export Dropdown */}
+                      <div className="dropdown">
+                        <button
+                          className="btn btn-md fs-14 fw-normal border bg-white rounded text-dark d-inline-flex align-items-center"
+                          data-bs-toggle="dropdown"
+                        >
+                          Export <i className="ti ti-chevron-down ms-2" />
+                        </button>
+                        <ul className="dropdown-menu p-2">
+                          <li>
+                            <button className="dropdown-item" type="button" onClick={handleDownloadExcel}>
+                              Download as Excel
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
 
           <div className="table-responsive">
             <Datatable

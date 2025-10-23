@@ -70,14 +70,14 @@ const EmailVerificationCover = () => {
                               Check your email &amp; change your password.
                             </p>
                           </div>
-                          <div className="mt-3">
+                          {/* <div className="mt-3">
                             <Link
                               to={all_routes.twostepverificationcover}
                               className="btn bg-primary text-white w-100"
                             >
                               Reset Password
                             </Link>
-                          </div>
+                          </div> */}
                         </div>
                         {/* end card body */}
                       </div>

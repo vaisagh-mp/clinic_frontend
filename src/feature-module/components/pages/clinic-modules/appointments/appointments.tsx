@@ -6,6 +6,8 @@ import SearchInput from "../../../../../core/common/dataTable/dataTableSearch";
 import Datatable from "../../../../../core/common/dataTable";
 import Modals from "./modals/modals";
 import axios from "axios";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 // Axios instance with interceptors
 const api = axios.create({
@@ -80,6 +82,36 @@ const Appointments = () => {
 
     fetchAppointments();
   }, [navigate, token]);
+
+
+  // ✅ Export as Excel
+  const exportExcel = () => {
+    const worksheetData = data.map((appt) => ({
+      "Appointment ID": appt.appointment_id || "",
+      "Date": appt.appointment_date || "",
+      "Time": appt.appointment_time || "",
+      "Patient": appt.patient
+        ? `${appt.patient.first_name || ""} ${appt.patient.last_name || ""}`
+        : "N/A",
+      "Patient Phone": appt.patient?.phone_number || "N/A",
+      "Doctor":
+        appt.doctor?.name ||
+        `${appt.doctor?.user?.first_name || ""} ${
+          appt.doctor?.user?.last_name || ""
+        }` ||
+        "N/A",
+      "Clinic": appt.clinic?.name || "N/A",
+      "Status": appt.status || "N/A",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Appointments");
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(blob, "Appointments.xlsx");
+  };
+
 
   // Handle Delete
   const handleDelete = async () => {
@@ -265,13 +297,33 @@ const Appointments = () => {
             </div>
           </div>
 
-          {/* Search */}
-          <div className="table-search mb-3">
-            <SearchInput
-              value={searchText}
-              onChange={(value) => setSearchText(value)}
-            />
-          </div>
+          {/* Search + Export */}
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                      {/* Search Input */}
+                      <div className="table-search mb-3">
+                        <SearchInput
+                          value={searchText}
+                          onChange={(value) => setSearchText(value)}
+                        />
+                      </div>
+                    
+                      {/* Export Dropdown */}
+                      <div className="dropdown">
+                        <button
+                          className="btn btn-md fs-14 fw-normal border bg-white rounded text-dark d-inline-flex align-items-center"
+                          data-bs-toggle="dropdown"
+                        >
+                          Export <i className="ti ti-chevron-down ms-2" />
+                        </button>
+                        <ul className="dropdown-menu p-2">
+                          <li>
+                            <button className="dropdown-item" type="button" onClick={exportExcel}>
+                              Download as Excel
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
 
           {/* Table */}
           {loading ? (

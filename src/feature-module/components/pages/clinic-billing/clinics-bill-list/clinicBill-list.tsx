@@ -6,6 +6,8 @@ import Modals from "./modals/modals";
 import axios from "axios";
 import Header from "../../../../../core/common/header/header";
 import Sidebarthree from "../../../../../core/common/sidebarthree/sidebarthree";
+import * as XLSX from "xlsx";
+
 
 const ClinicBills = () => {
   const navigate = useNavigate();
@@ -68,6 +70,34 @@ const ClinicBills = () => {
       setDeleting(false);
     }
   };
+
+  const downloadExcel = () => {
+  if (!data || data.length === 0) {
+    alert("No bills available to download.");
+    return;
+  }
+
+  // Dynamically get clinic name from first record or fallback
+  const clinicName = data[0]?.clinic_name?.replace(/\s+/g, "_") || "Clinic";
+
+  // Format data for Excel
+  const formattedData = data.map((item) => ({
+    "Bill Number": item.bill_number,
+    "Bill Date": item.bill_date,
+    "Vendor Name": item.vendor_name,
+    "Clinic": item.clinic_name,
+    "Total Amount": item.total_amount,
+    "Status": item.status,
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(formattedData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Clinic Bills");
+
+  const filename = `${clinicName}_Bills_List.xlsx`;
+  XLSX.writeFile(workbook, filename);
+};
+
 
   const columns = [
     {
@@ -183,13 +213,33 @@ const ClinicBills = () => {
             </div>
           </div>
 
-          {/* Search */}
-          <div className="table-search mb-3">
-            <SearchInput
-              value={searchText}
-              onChange={(value) => setSearchText(value)}
-            />
-          </div>
+          {/* Search + Export */}
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                      {/* Search Input */}
+                      <div className="table-search mb-3">
+                        <SearchInput
+                          value={searchText}
+                          onChange={(value) => setSearchText(value)}
+                        />
+                      </div>
+                    
+                      {/* Export Dropdown */}
+                      <div className="dropdown">
+                        <button
+                          className="btn btn-md fs-14 fw-normal border bg-white rounded text-dark d-inline-flex align-items-center"
+                          data-bs-toggle="dropdown"
+                        >
+                          Export <i className="ti ti-chevron-down ms-2" />
+                        </button>
+                        <ul className="dropdown-menu p-2">
+                          <li>
+                            <button className="dropdown-item" type="button" onClick={downloadExcel}>
+                              Download as Excel
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
 
           {/* Table */}
           {loading ? (
