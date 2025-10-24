@@ -10,6 +10,7 @@ interface Item {
   medicine?: number | null;
   procedure?: number | null;
   quantity: number;
+  procedure_payments?: { amount_paid: number; notes: string }[];
 }
 
 interface Clinic {
@@ -157,7 +158,7 @@ const EditPharmacyBill = () => {
         // Map items robustly
         const mappedItems: Item[] = bill.items.map((item: any) => {
           if (item.item_type === "MEDICINE") {
-            const medRaw = item.medicine; // this could be number, string, or null
+            const medRaw = item.medicine;
             let medId: number | null = null;
           
             if (typeof medRaw === "string") {
@@ -174,9 +175,10 @@ const EditPharmacyBill = () => {
               medicine: medId,
               procedure: null,
               quantity: item.quantity || 1,
+              procedure_payments: [], // No payments for medicine
             };
           } else if (item.item_type === "PROCEDURE") {
-            const procRaw = item.procedure; // could be number, string, or null
+            const procRaw = item.procedure;
             let procId: number | null = null;
           
             if (typeof procRaw === "string") {
@@ -188,14 +190,25 @@ const EditPharmacyBill = () => {
               procId = procRaw;
             }
           
+            // 🟢 Include existing payments if available
+            const existingPayments =
+              item.procedure_payments?.map((p: any) => ({
+                amount_paid: p.amount_paid || 0,
+                notes: p.notes || "",
+              })) ||
+              (item.total_paid
+                ? [{ amount_paid: item.total_paid, notes: "" }]
+                : []);
+              
             return {
               item_type: "PROCEDURE",
               procedure: procId,
               medicine: null,
               quantity: item.quantity || 1,
+              procedure_payments: existingPayments,
             };
           } else {
-            return { item_type: "", medicine: null, procedure: null, quantity: 1 };
+            return { item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] };
           }
         });
 
@@ -257,6 +270,42 @@ const EditPharmacyBill = () => {
     setFormData({ ...formData, items: updated });
   };
 
+  // --- Procedure Payment Handlers ---
+
+  const handleProcedurePaymentChange = (
+    itemIndex: number,
+    paymentIndex: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    const updatedItems = [...formData.items];
+    if (!updatedItems[itemIndex].procedure_payments)
+      updatedItems[itemIndex].procedure_payments = [];
+    updatedItems[itemIndex].procedure_payments![paymentIndex] = {
+      ...updatedItems[itemIndex].procedure_payments![paymentIndex],
+      [name]: name === "amount_paid" ? Number(value) : value,
+    };
+    setFormData({ ...formData, items: updatedItems });
+  };
+
+  const addProcedurePayment = (itemIndex: number) => {
+    const updatedItems = [...formData.items];
+    if (!updatedItems[itemIndex].procedure_payments)
+      updatedItems[itemIndex].procedure_payments = [];
+    updatedItems[itemIndex].procedure_payments!.push({
+      amount_paid: 0,
+      notes: "",
+    });
+    setFormData({ ...formData, items: updatedItems });
+  };
+
+  const removeProcedurePayment = (itemIndex: number, paymentIndex: number) => {
+    const updatedItems = [...formData.items];
+    updatedItems[itemIndex].procedure_payments!.splice(paymentIndex, 1);
+    setFormData({ ...formData, items: updatedItems });
+  };
+
+
   // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,6 +321,7 @@ const EditPharmacyBill = () => {
             item_type: "PROCEDURE",
             procedure_id: item.procedure,
             quantity: item.quantity,
+            procedure_payments: item.procedure_payments || [],
           };
         }
         return {
@@ -477,6 +527,58 @@ const EditPharmacyBill = () => {
                               required
                             />
                           </div>
+
+                          {item.item_type === "PROCEDURE" && item.procedure && (
+                            <div className="border p-2 mb-3 rounded bg-light">
+                              <h6 className="fw-bold">Procedure Payments</h6>
+
+                              {item.procedure_payments?.map((payment, pIndex) => (
+                                <div key={pIndex} className="d-flex gap-2 align-items-end mb-2">
+                                  <div className="col">
+                                    <label className="form-label">Amount Paid *</label>
+                                    <input
+                                      type="number"
+                                      name="amount_paid"
+                                      className="form-control"
+                                      value={payment.amount_paid}
+                                      min={0}
+                                      required
+                                      onChange={(e) => handleProcedurePaymentChange(index, pIndex, e)}
+                                    />
+                                  </div>
+                                  <div className="col">
+                                    <label className="form-label">Notes</label>
+                                    <input
+                                      type="text"
+                                      name="notes"
+                                      className="form-control"
+                                      value={payment.notes}
+                                      onChange={(e) => handleProcedurePaymentChange(index, pIndex, e)}
+                                    />
+                                  </div>
+                                  <div>
+                                    <button
+                                      type="button"
+                                      className="btn btn-danger btn-sm"
+                                      onClick={() => removeProcedurePayment(index, pIndex)}
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+
+                              <button
+                                type="button"
+                                className="btn btn-success btn-sm mt-1"
+                                onClick={() => addProcedurePayment(index)}
+                              >
+                                + Add Payment
+                              </button>
+                            </div>
+                          )}
+
+
                         </div>
                       </div>
                     ))}

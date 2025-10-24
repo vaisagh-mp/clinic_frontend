@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import ImageWithBasePath from "../../imageWithBasePath";
 import React, { useEffect, useState } from "react";
