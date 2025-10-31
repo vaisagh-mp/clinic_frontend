@@ -45,14 +45,13 @@ const Feature = () => {
       >
         <div className="main-wrapper">
           <Header />
-          {path.startsWith("/doctor-dashboard/") ? (
+          {path.startsWith("/doctor-dashboard/") || path.startsWith("/doctor/dashboard/") ? (
             <SidebarTwo />
-          ) : path.startsWith("/clinic-dashboard/") ? (
+          ) : path.startsWith("/clinic-dashboard/") || path.startsWith("/clinic/dashboard/") ? (
             <Sidebarthree />
           ) : (
             <Sidebar />
           )}
-
           <ThemeSettings />
           <Outlet />
         </div>

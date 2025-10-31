@@ -8,6 +8,7 @@ import Modals from "./modals/modals";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { Modal, Button } from "react-bootstrap";
 
 // Axios instance with interceptors
 const api = axios.create({
@@ -53,6 +54,14 @@ const Appointments = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchText, setSearchText] = useState<string>("");
 
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [dateRange, setDateRange] = useState({
+    from: "",
+    to: "",
+  });
+  const [quickRange, setQuickRange] = useState<string>("");
+  const [showModal, setShowModal] = useState(false);
+
   // Delete state
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
@@ -86,31 +95,63 @@ const Appointments = () => {
 
   // ✅ Export as Excel
   const exportExcel = () => {
-    const worksheetData = data.map((appt) => ({
-      "Appointment ID": appt.appointment_id || "",
-      "Date": appt.appointment_date || "",
-      "Time": appt.appointment_time || "",
-      "Patient": appt.patient
-        ? `${appt.patient.first_name || ""} ${appt.patient.last_name || ""}`
-        : "N/A",
-      "Patient Phone": appt.patient?.phone_number || "N/A",
-      "Doctor":
-        appt.doctor?.name ||
-        `${appt.doctor?.user?.first_name || ""} ${
-          appt.doctor?.user?.last_name || ""
-        }` ||
-        "N/A",
-      "Clinic": appt.clinic?.name || "N/A",
-      "Status": appt.status || "N/A",
-    }));
+  // Apply same filtering logic used in UI
+  const filteredData = data.filter((appt) => {
+    const matchesSearch =
+      !searchText ||
+      appt.appointment_id?.toString().includes(searchText) ||
+      appt.patient?.first_name?.toLowerCase().includes(searchText.toLowerCase()) ||
+      appt.doctor?.name?.toLowerCase().includes(searchText.toLowerCase());
 
-    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Appointments");
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, "Appointments.xlsx");
-  };
+    const matchesStatus = !statusFilter || appt.status === statusFilter;
+
+    const matchesDateRange = (() => {
+      if (!dateRange.from && !dateRange.to) return true;
+      const apptDate = new Date(appt.appointment_date);
+      const fromDate = dateRange.from ? new Date(dateRange.from) : null;
+      const toDate = dateRange.to ? new Date(dateRange.to) : null;
+      if (fromDate && apptDate < fromDate) return false;
+      if (toDate && apptDate > toDate) return false;
+      return true;
+    })();
+
+    return matchesSearch && matchesStatus && matchesDateRange;
+  });
+
+  // Prepare data for Excel
+  const worksheetData = filteredData.map((appt) => ({
+    "Appointment ID": appt.appointment_id || "",
+    "Date": appt.appointment_date
+      ? new Date(appt.appointment_date).toLocaleDateString()
+      : "N/A",
+    "Time": appt.appointment_time || "",
+    "Patient": appt.patient
+      ? `${appt.patient.first_name || ""} ${appt.patient.last_name || ""}`
+      : "N/A",
+    "Patient Phone": appt.patient?.phone_number || "N/A",
+    "Doctor":
+      appt.doctor?.name ||
+      `${appt.doctor?.user?.first_name || ""} ${appt.doctor?.user?.last_name || ""}` ||
+      "N/A",
+    "Clinic": appt.clinic?.name || "N/A",
+    "Status": appt.status || "N/A",
+  }));
+
+  if (worksheetData.length === 0) {
+    alert("No appointments found for the selected filters!");
+    return;
+  }
+
+  // Create Excel sheet
+  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Appointments");
+
+  // Generate and download file
+  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+  saveAs(blob, `Appointments_${new Date().toISOString().split("T")[0]}.xlsx`);
+};
 
 
   // Handle Delete
@@ -272,6 +313,70 @@ const Appointments = () => {
     },
   ];
 
+  const handleQuickRange = (value: string) => {
+    setQuickRange(value);
+    const today = new Date();
+    let from = "";
+    let to = today.toISOString().split("T")[0];
+
+    if (value === "today") {
+      from = to;
+    } else if (value === "last_month") {
+      const past = new Date();
+      past.setMonth(today.getMonth() - 1);
+      from = past.toISOString().split("T")[0];
+    } else if (value === "last_6_months") {
+      const past = new Date();
+      past.setMonth(today.getMonth() - 6);
+      from = past.toISOString().split("T")[0];
+    } else if (value === "last_year") {
+      const past = new Date();
+      past.setFullYear(today.getFullYear() - 1);
+      from = past.toISOString().split("T")[0];
+    } else if (value === "custom") {
+      from = "";
+      to = "";
+      setShowModal(true);
+    } else {
+      from = "";
+      to = "";
+    }
+
+    setDateRange({ from, to });
+  };
+
+
+  const handleApplyCustom = () => {
+    setShowModal(false);
+  };
+
+  const handleClear = () => {
+    setQuickRange("");
+    setDateRange({ from: "", to: "" });
+  };
+  const filteredData = data.filter((appt) => {
+  const matchesSearch =
+    !searchText ||
+    appt.appointment_id?.toString().includes(searchText) ||
+    appt.patient?.first_name?.toLowerCase().includes(searchText.toLowerCase()) ||
+    appt.doctor?.name?.toLowerCase().includes(searchText.toLowerCase());
+
+  const matchesStatus = !statusFilter || appt.status === statusFilter;
+
+  const matchesDateRange = (() => {
+    if (!dateRange.from && !dateRange.to) return true;
+    const apptDate = new Date(appt.appointment_date);
+    const fromDate = dateRange.from ? new Date(dateRange.from) : null;
+    const toDate = dateRange.to ? new Date(dateRange.to) : null;
+    if (fromDate && apptDate < fromDate) return false;
+    if (toDate && apptDate > toDate) return false;
+    return true;
+  })();
+
+  return matchesSearch && matchesStatus && matchesDateRange;
+});
+
+
   return (
     <>
       <div className="page-wrapper">
@@ -306,6 +411,96 @@ const Appointments = () => {
                           onChange={(value) => setSearchText(value)}
                         />
                       </div>
+
+                      <div className="d-flex  gap-2">
+    {/* Status Filter */}
+      <select
+  className="form-select"
+  value={statusFilter}
+  onChange={(e) => setStatusFilter(e.target.value)}
+>
+  <option value="">All Status</option>
+  <option value="SCHEDULED">Scheduled</option>
+  <option value="COMPLETED">Completed</option>
+  <option value="CANCELLED">Cancelled</option>
+</select>
+
+
+    {/* Quick Preset */}
+    <select
+      className="form-select"
+      style={{ minWidth: "160px" }}
+      value={quickRange}
+      onChange={(e) => handleQuickRange(e.target.value)}
+    >
+      <option value="">Select Range</option>
+      <option value="today">Today</option>
+      <option value="last_month">Last Month</option>
+      <option value="last_6_months">Last 6 Months</option>
+      <option value="last_year">Last 1 Year</option>
+      <option value="custom">Custom Range</option>
+    </select>
+
+    {/* Custom From–To Range */}
+    {quickRange && (
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={handleClear}
+            >
+              Clear
+            </Button>
+          )}
+
+          {/* Custom Range Modal */}
+        <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>Select Custom Date Range</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="d-flex align-items-center gap-2">
+              <div>
+                <label className="form-label">From:</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={dateRange.from}
+                  onChange={(e) =>
+                    setDateRange((prev) => ({
+                      ...prev,
+                      from: e.target.value,
+                      to:
+                        prev.to && prev.to < e.target.value
+                          ? ""
+                          : prev.to,
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="form-label">To:</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={dateRange.to}
+                  min={dateRange.from || undefined}
+                  onChange={(e) =>
+                    setDateRange((prev) => ({ ...prev, to: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleApplyCustom}>
+              Apply
+            </Button>
+          </Modal.Footer>
+        </Modal>
+  </div>
                     
                       {/* Export Dropdown */}
                       <div className="dropdown">
@@ -331,11 +526,12 @@ const Appointments = () => {
           ) : (
             <div className="table-responsive">
               <Datatable
-                columns={columns}
-                dataSource={data || []}
-                Selection={false}
-                searchText={searchText}
-              />
+  columns={columns}
+  dataSource={filteredData || []}  // ✅ Apply filters
+  Selection={false}
+  searchText={searchText}
+/>
+
             </div>
           )}
         </div>

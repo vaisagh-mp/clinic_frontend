@@ -152,7 +152,13 @@ const DoctorsPrescriptions = () => {
         </div>
 
         <div className="search-set mb-3">
-          <SearchInput value={searchText} onChange={handleSearch} />
+          {/* Search Input */}
+                      <div className="table-search mb-3">
+                        <SearchInput
+                          value={searchText}
+                          onChange={(value) => setSearchText(value)}
+                        />
+                      </div>
         </div>
 
         <div className="table-responsive">

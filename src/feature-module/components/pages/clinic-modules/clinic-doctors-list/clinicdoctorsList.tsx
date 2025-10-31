@@ -6,18 +6,22 @@ import SearchInput from "../../../../../core/common/dataTable/dataTableSearch";
 import Datatable from "../../../../../core/common/dataTable";
 import axios from "axios";
 
+const API_BASE = "http://3.109.62.26/api/clinic";
+
 const ClinicDoctorsList = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<any[]>([]);
   const [searchText, setSearchText] = useState<string>("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [clinicId, setClinicId] = useState<number | null>(null);
+  const [role, setRole] = useState<string>("");
 
   useEffect(() => {
-    fetchDoctors();
+    getUserInfoAndFetchDoctors();
   }, []);
 
-  const fetchDoctors = async () => {
+  const getUserInfoAndFetchDoctors = async () => {
     try {
       const token = localStorage.getItem("access_token");
       if (!token) {
@@ -25,16 +29,46 @@ const ClinicDoctorsList = () => {
         return;
       }
 
-      const res = await axios.get("http://3.109.62.26/api/clinic/doctors/", {
+      // 🔹 Fetch current logged-in user details
+      const userRes = await axios.get(`${API_BASE}/me/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const userData = userRes.data;
+      setRole(userData.role);
+
+      // ✅ Save clinic_id for Superadmin
+      if (userData.role === "SUPERADMIN" && userData.current_clinic_id) {
+        setClinicId(userData.current_clinic_id);
+      }
+
+      fetchDoctors(token, userData);
+    } catch (err) {
+      console.error("Error fetching user info:", err);
+      navigate("/login-cover");
+    }
+  };
+
+  const fetchDoctors = async (token: string, userData: any) => {
+    try {
+      let url = `${API_BASE}/doctors/`;
+      console.log("Current Clinic ID:", userData?.current_clinic_id);
+      // ✅ For Superadmin, use new URL pattern with clinic_id
+      if (userData.role === "SUPERADMIN" && userData.current_clinic_id) {
+        url = `${API_BASE}/doctors/${userData.current_clinic_id}/`;
+      }
+
+      const res = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
-
+      console.log("Doctors API Response:", res.data);
+      
       const apiData = res.data.map((doc: any) => ({
         id: doc.id,
-        name: doc.name || `${doc.user?.first_name} ${doc.user?.last_name}`,
+        name: doc.name || `${doc.user?.first_name} ${doc.user?.last_name}` || "N/A",
         specialization: doc.specialization || "N/A",
         username: doc.username || doc.user?.username || "N/A",
         phone_number: doc.phone_number || "N/A",
@@ -52,7 +86,7 @@ const ClinicDoctorsList = () => {
 
       setData(apiData);
     } catch (error: any) {
-      if (error.response && error.response.status === 401) {
+      if (error.response?.status === 401) {
         navigate("/login-cover");
       } else {
         console.error("Error fetching doctors:", error);
@@ -60,17 +94,24 @@ const ClinicDoctorsList = () => {
     }
   };
 
-  // 🔹 Delete Doctor
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
       setLoading(true);
       const token = localStorage.getItem("access_token");
-      await axios.delete(`http://3.109.62.26/api/clinic/doctors/${deleteId}/`, {
+      if (!token) return;
+
+      let url = `${API_BASE}/doctors/${deleteId}/`;
+
+      // ✅ For Superadmin delete route (clinic_id + doctor_id)
+      if (role === "SUPERADMIN" && clinicId) {
+        url = `${API_BASE}/doctors/${clinicId}/${deleteId}/`;
+      }
+
+      await axios.delete(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Remove from UI
       setData((prev) => prev.filter((doc) => doc.id !== deleteId));
       setDeleteId(null);
     } catch (error) {
@@ -85,7 +126,10 @@ const ClinicDoctorsList = () => {
       title: "Profile",
       dataIndex: "profile_image",
       render: (text: any, record: any) => (
-        <Link to={`${all_routes.doctorsDetails}/${record.id}`} className="avatar me-2">
+        <Link
+          to={`${all_routes.clinicdoctordetails}/${record.id}`}
+          className="avatar me-2"
+        >
           <ImageWithBasePath
             src={record.profile_image}
             alt={record.name}
@@ -100,7 +144,9 @@ const ClinicDoctorsList = () => {
       render: (text: any, record: any) => (
         <div>
           <h6 className="mb-1 fs-14 fw-semibold">
-            <Link to={`${all_routes.clinicdoctordetails}/${record.id}`}>{text}</Link>
+            <Link to={`${all_routes.clinicdoctordetails}/${record.id}`}>
+              {text}
+            </Link>
           </h6>
           <span className="fs-13 d-block">{record.specialization}</span>
         </div>
@@ -118,11 +164,6 @@ const ClinicDoctorsList = () => {
       title: "Actions",
       render: (record: any) => (
         <div className="d-flex align-items-center">
-          {/* <div className="action-item me-2">
-            <Link to={all_routes.appointmentCalendar}>
-              <i className="ti ti-calendar-cog" />
-            </Link>
-          </div> */}
           <div className="action-item">
             <Link to="#" data-bs-toggle="dropdown">
               <i className="ti ti-dots-vertical" />
@@ -193,7 +234,7 @@ const ClinicDoctorsList = () => {
 
         <div className="footer text-center bg-white p-2 border-top">
           <p className="text-dark mb-0">
-            2025 ©
+            2025 ©{" "}
             <Link to="#" className="link-primary">
               Preclinic
             </Link>
@@ -202,7 +243,7 @@ const ClinicDoctorsList = () => {
         </div>
       </div>
 
-      {/* 🔹 Delete Modal (your design) */}
+      {/* Delete Modal */}
       <div className="modal fade" id="delete_modal" tabIndex={-1}>
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">

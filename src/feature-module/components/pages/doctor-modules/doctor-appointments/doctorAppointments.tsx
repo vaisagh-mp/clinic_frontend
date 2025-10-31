@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import Datatable from "../../../../../core/common/dataTable/index";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
+import SearchInput from "../../../../../core/common/dataTable/dataTableSearch";
 import { all_routes } from "../../../../routes/all_routes";
 import Modal from "./modal/modals";
 import axios from "axios";
@@ -144,31 +145,16 @@ const DoctorAppointments = () => {
             <div className="flex-grow-1">
               <h4 className="fw-semibold mb-0">Appointments</h4>
             </div>
-            <div className="text-end d-flex">
-              {/* Export */}
-              <div className="dropdown me-1">
-                <Link
-                  to="#"
-                  className="btn btn-md fs-14 fw-normal border bg-white rounded text-dark d-inline-flex align-items-center"
-                  data-bs-toggle="dropdown"
-                >
-                  Export <i className="ti ti-chevron-down ms-2" />
-                </Link>
-                <ul className="dropdown-menu p-2">
-                  <li>
-                    <Link className="dropdown-item" to="#">
-                      Download as PDF
-                    </Link>
-                  </li>
-                  <li>
-                    <Link className="dropdown-item" to="#">
-                      Download as Excel
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-            </div>
           </div>
+          <div className="d-flex align-items-center justify-content-between mb-3">
+              {/* Search Input */}
+                      <div className="table-search mb-3">
+                        <SearchInput
+                          value={searchText}
+                          onChange={(value) => setSearchText(value)}
+                        />
+                      </div>
+            </div>
 
           {/* Table */}
           {loading ? (
@@ -182,7 +168,7 @@ const DoctorAppointments = () => {
                 dataSource={data}
                 Selection={false}
                 searchText={searchText}
-                onSearch={handleSearch}
+                // onSearch={handleSearch}
               />
             </div>
           )}

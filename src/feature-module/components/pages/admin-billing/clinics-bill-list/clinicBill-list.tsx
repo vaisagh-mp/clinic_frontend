@@ -9,7 +9,7 @@ import Header from "../../../../../core/common/header/header";
 import Sidebar from "../../../../../core/common/sidebar/sidebarAdmin";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-
+import { Modal, Button } from "react-bootstrap";
 
 // Axios instance with interceptors
 const api = axios.create({
@@ -55,6 +55,15 @@ const ClinicBills = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchText, setSearchText] = useState<string>("");
 
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [dateRange, setDateRange] = useState({
+    from: "",
+    to: "",
+  });
+  const [quickRange, setQuickRange] = useState<string>("");
+  const [showModal, setShowModal] = useState(false);
+
+
   // Delete state
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
@@ -87,22 +96,50 @@ const ClinicBills = () => {
 
   // Export as Excel
 const exportExcel = () => {
-  const worksheetData = data.map(bill => ({
+  // ✅ Check if filters are applied
+  const hasFilters =
+    searchText ||
+    statusFilter ||
+    dateRange.from ||
+    dateRange.to ||
+    quickRange;
+
+  // ✅ Use filtered data if filters exist, otherwise all data
+  const exportData = hasFilters ? filteredData : data;
+
+  const worksheetData = exportData.map((bill) => ({
     "Bill Number": bill.bill_number || "",
-    "Bill Date": bill.bill_date || "",
+    "Bill Date": bill.bill_date
+      ? new Date(bill.bill_date).toLocaleDateString()
+      : "",
     "Vendor Name": bill.vendor_name || "",
     "Clinic": bill.clinic_name || "",
     "Total Amount": bill.total_amount || 0,
-    "Status": bill.status || ""
+    "Status": bill.status || "",
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(worksheetData);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "ClinicBills");
+
   const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
   const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-  saveAs(blob, "ClinicBills.xlsx");
+
+  // ✅ Dynamic filename
+  const fileName = hasFilters
+    ? "ClinicBills_Filtered.xlsx"
+    : "ClinicBills_All.xlsx";
+
+  saveAs(blob, fileName);
+
+  // ✅ Optional console/log feedback
+  console.log(
+    `Exported ${exportData.length} ${
+      hasFilters ? "filtered" : "total"
+    } records to ${fileName}`
+  );
 };
+
 
   // Handle Delete
   const handleDelete = async () => {
@@ -146,12 +183,6 @@ const exportExcel = () => {
       title: "Clinic",
       dataIndex: "clinic",
       render: (_: any, record: any) => record.clinic_name || "N/A",
-    },
-    {
-      title: "Bill Date",
-      dataIndex: "bill_date",
-      render: (bill_date: string) => bill_date || "N/A",
-      sorter: (a: any, b: any) => a.bill_date.localeCompare(b.bill_date),
     },
     {
       title: "Total Amount",
@@ -219,6 +250,70 @@ const exportExcel = () => {
     },
   ];
 
+
+    const handleQuickRange = (value: string) => {
+    setQuickRange(value);
+    const today = new Date();
+    let from = "";
+    let to = today.toISOString().split("T")[0];
+
+    if (value === "today") {
+      from = to;
+    } else if (value === "last_month") {
+      const past = new Date();
+      past.setMonth(today.getMonth() - 1);
+      from = past.toISOString().split("T")[0];
+    } else if (value === "last_6_months") {
+      const past = new Date();
+      past.setMonth(today.getMonth() - 6);
+      from = past.toISOString().split("T")[0];
+    } else if (value === "last_year") {
+      const past = new Date();
+      past.setFullYear(today.getFullYear() - 1);
+      from = past.toISOString().split("T")[0];
+    } else if (value === "custom") {
+      from = "";
+      to = "";
+      setShowModal(true);
+    } else {
+      from = "";
+      to = "";
+    }
+
+    setDateRange({ from, to });
+  };
+
+
+  const handleApplyCustom = () => {
+    setShowModal(false);
+  };
+
+  const handleClear = () => {
+    setQuickRange("");
+    setDateRange({ from: "", to: "" });
+  };
+  const filteredData = data.filter((bill) => {
+  const matchesSearch =
+    !searchText ||
+    bill.bill_number?.toLowerCase().includes(searchText.toLowerCase()) ||
+    bill.supplier_name?.toLowerCase().includes(searchText.toLowerCase());
+
+  const matchesStatus = !statusFilter || bill.status === statusFilter;
+
+  const matchesDateRange = (() => {
+    if (!dateRange.from && !dateRange.to) return true;
+    const billDate = new Date(bill.bill_date);
+    const fromDate = dateRange.from ? new Date(dateRange.from) : null;
+    const toDate = dateRange.to ? new Date(dateRange.to) : null;
+    if (fromDate && billDate < fromDate) return false;
+    if (toDate && billDate > toDate) return false;
+    return true;
+  })();
+
+  return matchesSearch && matchesStatus && matchesDateRange;
+});
+
+
   return (
     <>
     <Header />
@@ -255,6 +350,95 @@ const exportExcel = () => {
                 onChange={(value) => setSearchText(value)}
               />
             </div>
+
+              <div className="d-flex  gap-2">
+    {/* Status Filter */}
+      <select
+        className="form-select"
+        value={statusFilter}
+        onChange={(e) => setStatusFilter(e.target.value)}
+      >
+        <option value="">All Status</option>
+        <option value="PAID">PAID</option>
+        <option value="PENDING">PENDING</option>
+        <option value="CANCELLED">CANCELLED</option>
+      </select>
+
+    {/* Quick Preset */}
+    <select
+      className="form-select"
+      style={{ minWidth: "160px" }}
+      value={quickRange}
+      onChange={(e) => handleQuickRange(e.target.value)}
+    >
+      <option value="">Select Range</option>
+      <option value="today">Today</option>
+      <option value="last_month">Last Month</option>
+      <option value="last_6_months">Last 6 Months</option>
+      <option value="last_year">Last 1 Year</option>
+      <option value="custom">Custom Range</option>
+    </select>
+
+    {/* Custom From–To Range */}
+    {quickRange && (
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={handleClear}
+            >
+              Clear
+            </Button>
+          )}
+
+          {/* Custom Range Modal */}
+        <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>Select Custom Date Range</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="d-flex align-items-center gap-2">
+              <div>
+                <label className="form-label">From:</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={dateRange.from}
+                  onChange={(e) =>
+                    setDateRange((prev) => ({
+                      ...prev,
+                      from: e.target.value,
+                      to:
+                        prev.to && prev.to < e.target.value
+                          ? ""
+                          : prev.to,
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="form-label">To:</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={dateRange.to}
+                  min={dateRange.from || undefined}
+                  onChange={(e) =>
+                    setDateRange((prev) => ({ ...prev, to: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleApplyCustom}>
+              Apply
+            </Button>
+          </Modal.Footer>
+        </Modal>
+  </div>
           
             {/* Export Dropdown */}
             <div className="dropdown">
@@ -281,11 +465,11 @@ const exportExcel = () => {
           ) : (
             <div className="table-responsive">
               <Datatable
-                columns={columns}
-                dataSource={data || []}
-                Selection={false}
-                searchText={searchText}
-              />
+  columns={columns}
+  dataSource={filteredData || []}  // ✅ Apply filters
+  Selection={false}
+  searchText={searchText}
+/>
             </div>
           )}
         </div>

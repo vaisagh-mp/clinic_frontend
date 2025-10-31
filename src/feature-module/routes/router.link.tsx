@@ -358,6 +358,17 @@ export const publicRoutes = [
     route: Route,
   },
   {
+  path: "/clinic/dashboard/:id",
+  element: <ClinictDashboard />,
+  route: Route,
+},
+{
+  path: "/doctor/dashboard/:id",
+  element: <DoctorDahboard />,
+  route: Route,
+},
+
+  {
     path: routes.doctordashboard,
     element: <DoctorDahboard />,
     route: Route,
@@ -598,6 +609,11 @@ export const publicRoutes = [
     element: <ClinicallDoctor />,
     route: Route,
   },
+  {
+  path: "/clinic-dashboard/:id/doctors-list",
+  element: <ClinicallDoctor />,
+  route: Route,
+},
   {
     path: "/clinic-dashboard/edit-doctor/:id",
     element: <CliniceditDoctor />,

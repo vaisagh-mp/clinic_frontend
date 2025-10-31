@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import { all_routes } from "../../../../routes/all_routes";
 import Modals from "./modals/modals";
@@ -13,45 +13,52 @@ const DoctorDahboard = () => {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      navigate("/login-cover");
-      return;
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    navigate("/login-cover");
+    return;
+  }
+
+  const fetchDashboardData = async () => {
+    try {
+      // If superadmin is switching panels, use doctor ID from URL
+      const url = id
+        ? `http://3.109.62.26/api/doctor/dashboard/${id}/`
+        : `http://3.109.62.26/api/doctor/dashboard/`;
+
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setDashboardData(response.data);
+    } catch (error) {
+      console.error("Error fetching doctor dashboard data:", error);
     }
+  };
 
-    const fetchDashboardData = async () => {
-      try {
-        const response = await axios.get(
-          "http://3.109.62.26/api/doctor/dashboard/",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setDashboardData(response.data);
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      }
-    };
+  const fetchAppointments = async () => {
+    try {
+      const url = id
+        ? `http://3.109.62.26/api/doctor/appointments/${id}/`
+        : `http://3.109.62.26/api/doctor/appointments/`;
 
-    const fetchAppointments = async () => {
-      try {
-        const response = await axios.get(
-          "http://3.109.62.26/api/doctor/appointments/",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setAppointments(response.data);
-      } catch (error) {
-        console.error("Error fetching appointments:", error);
-      }
-    };
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    fetchDashboardData();
-    fetchAppointments();
-  }, [navigate]);
+      setAppointments(response.data);
+    } catch (error) {
+      console.error("Error fetching doctor appointments:", error);
+    }
+  };
+
+  fetchDashboardData();
+  fetchAppointments();
+}, [navigate, id]);
+
 
   if (!dashboardData) {
     return <div className="text-center p-5">Loading...</div>;

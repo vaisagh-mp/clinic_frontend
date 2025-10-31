@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import ImageWithBasePath from "../../imageWithBasePath";
 import { useNavigate } from "react-router-dom";
+import { all_routes } from "../../../feature-module/routes/all_routes";
 
 interface UserItem {
   id: number;
@@ -13,31 +14,37 @@ const SidebarTop = () => {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [open, setOpen] = useState(false);
-
   const navigate = useNavigate();
 
+  // ✅ Fetch all switchable users
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) return;
+    const fetchUsers = async () => {
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
 
-    // Fetch all switchable users
-    axios
-      .get("http://3.109.62.26/api/admin-panel/switchable-users/", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setUsers(res.data.users);
+      try {
+        const res = await axios.get("http://3.109.62.26/api/admin-panel/switchable-users/", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-        // Set current acting user from localStorage
-        const actingId = localStorage.getItem("acting_as_user_id");
-        if (actingId) {
-          const user = res.data.users.find((u: any) => u.id === Number(actingId));
-          setSelectedUser(user);
-        }
-      })
-      .catch((err) => console.error("Fetch users error:", err));
+        const userList = res.data.users || [];
+        setUsers(userList);
+
+        const storedId = localStorage.getItem("acting_as_user_id");
+if (storedId) {
+  const current = userList.find((u: UserItem) => u.id === Number(storedId));
+  setSelectedUser(current || null);
+}
+
+      } catch (err) {
+        console.error("❌ Fetch users error:", err);
+      }
+    };
+
+    fetchUsers();
   }, []);
 
+  // ✅ Handle switching between panels
   const handleSwitch = async (user: UserItem) => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
@@ -49,19 +56,30 @@ const SidebarTop = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Save new JWT and acting info
-      localStorage.setItem("access_token", res.data.access);
-      localStorage.setItem("acting_as_role", res.data.acting_as);
-      localStorage.setItem("acting_as_user_id", res.data.target_id);
+      const { access, acting_as, target_id, target_name } = res.data;
 
+      // ✅ Store new token & context
+      localStorage.setItem("access_token", access);
+      localStorage.setItem("acting_as_role", acting_as);
+      localStorage.setItem("acting_as_user_id", target_id.toString());
+      localStorage.setItem("acting_as_user_name", target_name);
+
+      axios.defaults.headers.common["Authorization"] = `Bearer ${access}`;
+
+      // ✅ Set selected user & close dropdown
       setSelectedUser(user);
       setOpen(false);
 
-      // Navigate to dashboard of the selected user
-      if (user.role === "clinic") navigate("/clinic/dashboard", { replace: true });
-      else if (user.role === "doctor") navigate("/doctor/dashboard", { replace: true });
+      // ✅ Hard reload ensures React fully reboots with new token context
+      if (acting_as === "clinic") {
+        window.location.href = `/clinic/dashboard/${target_id}`;
+      } else if (acting_as === "doctor") {
+        window.location.href = `/doctor/dashboard/${target_id}`;
+      } else {
+        window.location.href = `/dashboard`;
+      }
     } catch (err: any) {
-      console.error("User switch failed:", err.response || err);
+      console.error("❌ Switch failed:", err.response || err);
     }
   };
 
@@ -77,9 +95,11 @@ const SidebarTop = () => {
           </span>
           <div className="ms-2">
             <h6 className="fs-14 fw-semibold mb-0">
-              {selectedUser?.name || "Select User"}
+              {selectedUser?.name || "Select Panel"}
             </h6>
-            <p className="fs-13 mb-0">{selectedUser?.role?.toUpperCase() || ""}</p>
+            <p className="fs-13 mb-0 text-muted">
+              {selectedUser?.role?.toUpperCase() || ""}
+            </p>
           </div>
         </div>
         <span className="dropdown-arrow">{open ? "▲" : "▼"}</span>
@@ -96,10 +116,18 @@ const SidebarTop = () => {
               onClick={() => handleSwitch(user)}
             >
               <span>{user.name}</span>
-              <small className="text-muted ms-2">{user.role}</small>
+              <small className="text-muted ms-2">
+                {user.role === "clinic"
+                  ? "Clinic"
+                  : user.role === "doctor"
+                  ? "Doctor"
+                  : user.role}
+              </small>
             </button>
           ))}
-          {users.length === 0 && <p className="text-muted mb-0">No users available</p>}
+          {users.length === 0 && (
+            <p className="text-muted mb-0 text-center">No panels available</p>
+          )}
         </div>
       )}
     </div>

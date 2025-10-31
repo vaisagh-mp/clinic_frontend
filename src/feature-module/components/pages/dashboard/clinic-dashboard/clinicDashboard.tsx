@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import { all_routes } from "../../../../routes/all_routes";
 import Chart from "react-apexcharts";
@@ -42,6 +42,7 @@ interface Appointment {
 
 const ClinicDashboard = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [latestDoctors, setLatestDoctors] = useState<Doctor[]>([]);
@@ -57,7 +58,12 @@ const ClinicDashboard = () => {
           return;
         }
 
-        const response = await fetch("http://3.109.62.26/api/clinic/dashboard/", {
+        // ✅ if ID exists in URL, call that endpoint
+        const endpoint = id
+          ? `http://3.109.62.26/api/clinic/dashboard/${id}/`
+          : `http://3.109.62.26/api/clinic/dashboard/`;
+
+        const response = await fetch(endpoint, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -78,7 +84,7 @@ const ClinicDashboard = () => {
     };
 
     fetchDashboard();
-  }, [navigate]);
+  }, [id, navigate]);
 
   const sColChartOptions: ApexOptions = {
   chart: {
@@ -241,18 +247,18 @@ const ClinicDashboard = () => {
                       <div className="border shadow-sm p-3 rounded-2">
                         <div className="d-flex align-items-center mb-3">
                           <Link
-                            to={`${all_routes.clinicdoctordetails}/${doc.id}`}
-                            className="avatar me-2 flex-shrink-0 position-relative"
+                            to={`/clinic-dashboard/doctor-details/${doc.id}`}
+                            className="avatar me-2 flex-shrink-0"
                           >
-                            {doc.profile_image ? (
-                              <ImageWithBasePath
-                                src={`http://3.109.62.26${doc.profile_image}`} // ✅ prepend the base profile path
-                                alt="img"
-                                className="rounded-circle"
-                              />
-                            ) : (
-                              <span className="avatar-placeholder rounded-circle">{doc.name.charAt(0)}</span>
-                            )}
+                            <ImageWithBasePath
+                              src={
+                                doc.profile_image
+                                  ? `http://3.109.62.26${doc.profile_image}`
+                                  : "assets/img/doctors/doctor-01.jpg"
+                              }
+                              alt={doc.name || "Doctor"}
+                              className="rounded-circle"
+                            />
                           </Link>
                           <div>
                             <h6 className="fs-14 mb-1 text-truncate">

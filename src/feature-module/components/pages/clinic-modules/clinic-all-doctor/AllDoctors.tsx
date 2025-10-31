@@ -124,7 +124,7 @@ const AllDoctors = () => {
       title: "Profile",
       dataIndex: "profile_image",
       render: (text: any, record: any) => (
-        <Link to={`${all_routes.doctorsDetails}/${record.id}`} className="avatar me-2">
+        <Link to={`${all_routes.clinicdoctordetails}/${record.id}`} className="avatar me-2">
           <ImageWithBasePath
             src={record.profile_image}
             alt={record.name}

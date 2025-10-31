@@ -115,7 +115,7 @@ const EditClinic = () => {
             <div className="d-flex align-items-sm-center flex-sm-row flex-column gap-2 mb-3">
               <div className="flex-grow-1">
                 <h6 className="fw-bold mb-0 d-flex align-items-center">
-                  <Link to={all_routes.doctors}>
+                  <Link to={all_routes.clinicList}>
                     <i className="ti ti-chevron-left me-1 fs-14" />
                     Clinic
                   </Link>

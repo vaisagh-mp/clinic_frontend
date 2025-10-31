@@ -5,10 +5,28 @@ import { all_routes } from "../../../feature-module/routes/all_routes";
 import { useDispatch, useSelector } from "react-redux";
 import { updateTheme } from "../../redux/themeSlice";
 import { setExpandMenu, setMobileSidebar } from "../../redux/sidebarSlice";
+import SidebarTop from "../sidebar/SidebarTop";
 
 const Sidebarthree = () => {
   const location = useLocation();
   const routes = all_routes;
+
+  // ✅ Read token from localStorage (added by Switch Panel API)
+  const token = localStorage.getItem("access_token");
+  const decodedToken = token ? JSON.parse(atob(token.split(".")[1])) : null;
+
+  const actingAsRole = decodedToken?.acting_as_role; // e.g., "clinic", "doctor"
+  const originalRole = decodedToken?.role || decodedToken?.user_role; // fallback
+
+  // ✅ Show SidebarTop if:
+  // - User is superadmin and switched to a clinic/doctor
+  // - OR user itself is a clinic or doctor
+  const showSidebarTop =
+    (originalRole === "superadmin" && actingAsRole !== undefined) ||
+    actingAsRole === "clinic" ||
+    actingAsRole === "doctor" ||
+    originalRole === "clinic" ||
+    originalRole === "doctor";
 
   // State for open submenus
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({
@@ -18,7 +36,7 @@ const Sidebarthree = () => {
     patients: false,
   });
 
-  // Auto-open submenus if current route belongs to that menu
+  // Auto-open settings submenu
   useEffect(() => {
     const settingsRoutes = [
       routes.patientprofilesettings,
@@ -28,7 +46,9 @@ const Sidebarthree = () => {
 
     setOpenSubmenus((prev) => ({
       ...prev,
-      settings: settingsRoutes.includes(location.pathname) ? true : prev.settings,
+      settings: settingsRoutes.includes(location.pathname)
+        ? true
+        : prev.settings,
     }));
   }, [location.pathname, routes]);
 
@@ -62,8 +82,11 @@ const Sidebarthree = () => {
   const onMouseEnter = () => dispatch(setExpandMenu(true));
   const onMouseLeave = () => dispatch(setExpandMenu(false));
 
-  const mobileSidebar = useSelector((state: any) => state.sidebarSlice.mobileSidebar);
-  const toggleMobileSidebar = () => dispatch(setMobileSidebar(!mobileSidebar));
+  const mobileSidebar = useSelector(
+    (state: any) => state.sidebarSlice.mobileSidebar
+  );
+  const toggleMobileSidebar = () =>
+    dispatch(setMobileSidebar(!mobileSidebar));
 
   return (
     <>
@@ -98,8 +121,11 @@ const Sidebarthree = () => {
             <i className="ti ti-x align-middle" />
           </button>
         </div>
+
         {/* Sidebar Menu */}
-        <div id="sidebar-menu" className="sidebar-menu">
+        <div className="sidebar-inner" data-simplebar="">
+          <div id="sidebar-menu" className="sidebar-menu">
+          {showSidebarTop && <SidebarTop />}
           <ul>
             <li className="menu-title">
               <span>Main Menu</span>
@@ -107,7 +133,9 @@ const Sidebarthree = () => {
             <li>
               <ul>
                 {/* Dashboard */}
-                <li className={isActive(routes.clinicdashboard) ? "active" : ""}>
+                <li
+                  className={isActive(routes.clinicdashboard) ? "active" : ""}
+                >
                   <Link to={routes.clinicdashboard}>
                     <i className="ti ti-layout-dashboard" />
                     <span>Dashboard</span>
@@ -115,7 +143,9 @@ const Sidebarthree = () => {
                 </li>
 
                 {/* Doctors Submenu */}
-                <li className={`submenu${openSubmenus.doctors ? " active" : ""}`}>
+                <li
+                  className={`submenu${openSubmenus.doctors ? " active" : ""}`}
+                >
                   <Link
                     to="#"
                     onClick={(e) => {
@@ -126,14 +156,24 @@ const Sidebarthree = () => {
                     <i className="ti ti-stethoscope" />
                     <span>Doctors</span>
                     <span className="menu-arrow">
-                      <i className={openSubmenus.doctors ? "ti ti-chevron-down" : "ti ti-chevron-right"} />
+                      <i
+                        className={
+                          openSubmenus.doctors
+                            ? "ti ti-chevron-down"
+                            : "ti ti-chevron-right"
+                        }
+                      />
                     </span>
                   </Link>
-                  <ul style={{ display: openSubmenus.doctors ? "block" : "none" }}>
+                  <ul
+                    style={{ display: openSubmenus.doctors ? "block" : "none" }}
+                  >
                     <li>
                       <Link
                         to={routes.clinicallDoctors}
-                        className={isActive(routes.clinicallDoctors) ? "active" : ""}
+                        className={
+                          isActive(routes.clinicallDoctors) ? "active" : ""
+                        }
                       >
                         Doctor List
                       </Link>
@@ -141,7 +181,9 @@ const Sidebarthree = () => {
                     <li>
                       <Link
                         to={routes.clinicadddoctor}
-                        className={isActive(routes.clinicadddoctor) ? "active" : ""}
+                        className={
+                          isActive(routes.clinicadddoctor) ? "active" : ""
+                        }
                       >
                         Add Doctor
                       </Link>
@@ -150,7 +192,9 @@ const Sidebarthree = () => {
                 </li>
 
                 {/* Patients Submenu */}
-                <li className={`submenu${openSubmenus.patients ? " active" : ""}`}>
+                <li
+                  className={`submenu${openSubmenus.patients ? " active" : ""}`}
+                >
                   <Link
                     to="#"
                     onClick={(e) => {
@@ -161,14 +205,24 @@ const Sidebarthree = () => {
                     <i className="ti ti-user" />
                     <span>Patients</span>
                     <span className="menu-arrow">
-                      <i className={openSubmenus.patients ? "ti ti-chevron-down" : "ti ti-chevron-right"} />
+                      <i
+                        className={
+                          openSubmenus.patients
+                            ? "ti ti-chevron-down"
+                            : "ti ti-chevron-right"
+                        }
+                      />
                     </span>
                   </Link>
-                  <ul style={{ display: openSubmenus.patients ? "block" : "none" }}>
+                  <ul
+                    style={{ display: openSubmenus.patients ? "block" : "none" }}
+                  >
                     <li>
                       <Link
                         to={routes.clinicpatients}
-                        className={isActive(routes.clinicpatients) ? "active" : ""}
+                        className={
+                          isActive(routes.clinicpatients) ? "active" : ""
+                        }
                       >
                         Patients List
                       </Link>
@@ -176,7 +230,9 @@ const Sidebarthree = () => {
                     <li>
                       <Link
                         to={routes.cliniccreatePatient}
-                        className={isActive(routes.cliniccreatePatient) ? "active" : ""}
+                        className={
+                          isActive(routes.cliniccreatePatient) ? "active" : ""
+                        }
                       >
                         Add Patient
                       </Link>
@@ -185,7 +241,11 @@ const Sidebarthree = () => {
                 </li>
 
                 {/* Appointments Submenu */}
-                <li className={`submenu${openSubmenus.appointments ? " active" : ""}`}>
+                <li
+                  className={`submenu${
+                    openSubmenus.appointments ? " active" : ""
+                  }`}
+                >
                   <Link
                     to="#"
                     onClick={(e) => {
@@ -196,14 +256,26 @@ const Sidebarthree = () => {
                     <i className="ti ti-calendar-check" />
                     <span>Appointments</span>
                     <span className="menu-arrow">
-                      <i className={openSubmenus.appointments ? "ti ti-chevron-down" : "ti ti-chevron-right"} />
+                      <i
+                        className={
+                          openSubmenus.appointments
+                            ? "ti ti-chevron-down"
+                            : "ti ti-chevron-right"
+                        }
+                      />
                     </span>
                   </Link>
-                  <ul style={{ display: openSubmenus.appointments ? "block" : "none" }}>
+                  <ul
+                    style={{
+                      display: openSubmenus.appointments ? "block" : "none",
+                    }}
+                  >
                     <li>
                       <Link
                         to={routes.clinicappointments}
-                        className={isActive(routes.clinicappointments) ? "active" : ""}
+                        className={
+                          isActive(routes.clinicappointments) ? "active" : ""
+                        }
                       >
                         Appointment List
                       </Link>
@@ -211,17 +283,24 @@ const Sidebarthree = () => {
                     <li>
                       <Link
                         to={routes.clinicnewAppointments}
-                        className={isActive(routes.clinicnewAppointments) ? "active" : ""}
+                        className={
+                          isActive(routes.clinicnewAppointments)
+                            ? "active"
+                            : ""
+                        }
                       >
                         Add Appointment
                       </Link>
                     </li>
-
                   </ul>
                 </li>
 
                 {/* Medicine Submenu */}
-                <li className={`submenu${openSubmenus.medicine ? " active" : ""}`}>
+                <li
+                  className={`submenu${
+                    openSubmenus.medicine ? " active" : ""
+                  }`}
+                >
                   <Link
                     to="#"
                     onClick={(e) => {
@@ -232,14 +311,26 @@ const Sidebarthree = () => {
                     <i className="ti ti-pill" />
                     <span>Medicine</span>
                     <span className="menu-arrow">
-                      <i className={openSubmenus.medicine ? "ti ti-chevron-down" : "ti ti-chevron-right"} />
+                      <i
+                        className={
+                          openSubmenus.medicine
+                            ? "ti ti-chevron-down"
+                            : "ti ti-chevron-right"
+                        }
+                      />
                     </span>
                   </Link>
-                  <ul style={{ display: openSubmenus.medicine ? "block" : "none" }}>
+                  <ul
+                    style={{
+                      display: openSubmenus.medicine ? "block" : "none",
+                    }}
+                  >
                     <li>
                       <Link
                         to={routes.MedicineList}
-                        className={isActive(routes.MedicineList) ? "active" : ""}
+                        className={
+                          isActive(routes.MedicineList) ? "active" : ""
+                        }
                       >
                         Medicine List
                       </Link>
@@ -247,17 +338,22 @@ const Sidebarthree = () => {
                     <li>
                       <Link
                         to={routes.addMedicine}
-                        className={isActive(routes.addMedicine) ? "active" : ""}
+                        className={
+                          isActive(routes.addMedicine) ? "active" : ""
+                        }
                       >
                         Add Medicine
                       </Link>
                     </li>
-
                   </ul>
                 </li>
 
                 {/* Procedure Submenu */}
-                <li className={`submenu${openSubmenus.Procedure ? " active" : ""}`}>
+                <li
+                  className={`submenu${
+                    openSubmenus.Procedure ? " active" : ""
+                  }`}
+                >
                   <Link
                     to="#"
                     onClick={(e) => {
@@ -268,14 +364,26 @@ const Sidebarthree = () => {
                     <i className="ti ti-hospital" />
                     <span>Procedure</span>
                     <span className="menu-arrow">
-                      <i className={openSubmenus.Procedure ? "ti ti-chevron-down" : "ti ti-chevron-right"} />
+                      <i
+                        className={
+                          openSubmenus.Procedure
+                            ? "ti ti-chevron-down"
+                            : "ti ti-chevron-right"
+                        }
+                      />
                     </span>
                   </Link>
-                  <ul style={{ display: openSubmenus.Procedure ? "block" : "none" }}>
+                  <ul
+                    style={{
+                      display: openSubmenus.Procedure ? "block" : "none",
+                    }}
+                  >
                     <li>
                       <Link
                         to={routes.ProcedureList}
-                        className={isActive(routes.ProcedureList) ? "active" : ""}
+                        className={
+                          isActive(routes.ProcedureList) ? "active" : ""
+                        }
                       >
                         Procedure List
                       </Link>
@@ -283,32 +391,30 @@ const Sidebarthree = () => {
                     <li>
                       <Link
                         to={routes.addProcedure}
-                        className={isActive(routes.addProcedure) ? "active" : ""}
+                        className={
+                          isActive(routes.addProcedure) ? "active" : ""
+                        }
                       >
                         Add Procedure
                       </Link>
                     </li>
-
                   </ul>
                 </li>
 
-
                 {/* Prescriptions */}
                 <li>
-                  <Link
-                    to="/clinic-dashboard/prescriptions"
-                  >
+                  <Link to="/clinic-dashboard/prescriptions">
                     <i className="ti ti-prescription" />
                     <span>Prescriptions</span>
-                    {/* <span className="menu-arrow">
-                      <i className={openSubmenus.Prescriptions ? "ti ti-chevron-down" : "ti ti-chevron-right"} />
-                    </span> */}
                   </Link>
                 </li>
 
-
                 {/* Billing */}
-                <li className={`submenu${openSubmenus.Billing ? " active" : ""}`}>
+                <li
+                  className={`submenu${
+                    openSubmenus.Billing ? " active" : ""
+                  }`}
+                >
                   <Link
                     to="#"
                     onClick={(e) => {
@@ -319,49 +425,73 @@ const Sidebarthree = () => {
                     <i className="ti ti-file-invoice" />
                     <span>Billing</span>
                     <span className="menu-arrow">
-                      <i className={openSubmenus.Billing ? "ti ti-chevron-down" : "ti ti-chevron-right"} />
+                      <i
+                        className={
+                          openSubmenus.Billing
+                            ? "ti ti-chevron-down"
+                            : "ti ti-chevron-right"
+                        }
+                      />
                     </span>
                   </Link>
-                  <ul style={{ display: openSubmenus.Billing ? "block" : "none" }}>
+                  <ul
+                    style={{
+                      display: openSubmenus.Billing ? "block" : "none",
+                    }}
+                  >
                     <li>
                       <Link
                         to={routes.clinicpanelclinicbillList}
-                        className={isActive(routes.clinicpanelclinicbillList) ? "active" : ""}
+                        className={
+                          isActive(routes.clinicpanelclinicbillList)
+                            ? "active"
+                            : ""
+                        }
                       >
                         Clinic Bills
                       </Link>
                     </li>
-                     <li>
+                    <li>
                       <Link
                         to={routes.clinicpanellabbillList}
-                        className={isActive(routes.clinicpanellabbillList) ? "active" : ""}
+                        className={
+                          isActive(routes.clinicpanellabbillList)
+                            ? "active"
+                            : ""
+                        }
                       >
                         Lab Bills
                       </Link>
                       <Link
                         to={routes.clinicmaterialpurchasebillList}
-                        className={isActive(routes.clinicmaterialpurchasebillList) ? "active" : ""}
+                        className={
+                          isActive(routes.clinicmaterialpurchasebillList)
+                            ? "active"
+                            : ""
+                        }
                       >
-                       Material Purchase Bills
+                        Material Purchase Bills
                       </Link>
 
                       <Link
                         to={routes.clinicpharmacybillList}
-                        className={isActive(routes.clinicpharmacybillList) ? "active" : ""}
+                        className={
+                          isActive(routes.clinicpharmacybillList)
+                            ? "active"
+                            : ""
+                        }
                       >
-                       Pharmacy Bills
+                        Pharmacy Bills
                       </Link>
                     </li>
-
-
                   </ul>
                 </li>
-
-
               </ul>
             </li>
           </ul>
         </div>
+        </div>
+        
       </div>
       {/* Sidenav Menu End */}
     </>

@@ -32,6 +32,9 @@ export const all_routes = {
   patientdashboard: "/patient/patient-dashboard",
   clinicdashboard: "/clinic-dashboard/",
 
+  clinicdashboardWithId: (id: number) => `/clinic/dashboard/${id}`,
+  doctordashboardWithId: (id: number) => `/doctor/dashboard/${id}`,
+
   //Patient
   patientdetails: "/patient/patient-details",
   patientappointments: "/patient/patient-appointments",
@@ -322,6 +325,7 @@ export const all_routes = {
  cliniceditDoctors: "/clinic-dashboard/edit-doctor",
  clinicdoctordetails: "/clinic-dashboard/doctor-details",
 
+ clinicAllDoctorsWithId: (id: number) => `/clinic-dashboard/${id}/doctors-list`,
 
  clinicappointments: "/clinic-dashboard/appointments",
  clinicnewAppointments: "/clinic-dashboard/new-appointments",

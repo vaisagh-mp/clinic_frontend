@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { all_routes } from "../../../../routes/all_routes";
 import axios from "axios";
+import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import doctorimage from "../../../../../../public/assets/img/doctors/doctor-01.jpg";
 
 const ClinicDetails = () => {
@@ -97,28 +98,38 @@ const ClinicDetails = () => {
               <div className="card-body ">
                 <h5 className="fw-bold mb-3">Doctors in Clinic</h5>
                 <div className="doctors-in-clininc">
-                {clinic.doctors.length === 0 ? (
-                  <p>No doctors found</p>
-                ) : (
-                  clinic.doctors.map((doc: any) => (
-                    <div key={doc.id} className="d-flex align-items-center mb-3">
-                      <span className="me-2 avatar">
-                        <img
-                          src={doc.profile_image || doctorimage}
-                          alt={doc.name}
-                          className="rounded-circle"
-                          width={50}
-                          height={50}
-                        />
-                      </span>
-                      <div>
-                        <h6 className="mb-0 fw-bold">{doc.name}</h6>
-                        <p className="mb-0">{doc.specialization}</p>
-                        <p className="mb-0 fs-13">{doc.email}</p>
+                {clinic.doctors?.length === 0 ? (
+                    <p>No doctors found</p>
+                  ) : (
+                    clinic.doctors.map((doc: any) => (
+                      <div
+                        key={doc.id}
+                        className="d-flex align-items-center mb-3"
+                      >
+                        <Link
+                          to={`${all_routes.doctorsDetails}/${doc.id}`}
+                          className="avatar me-2 flex-shrink-0"
+                        >
+                          <ImageWithBasePath
+                            src={
+                              doc.profile_image
+                                ? `http://3.109.62.26${doc.profile_image}`
+                                : "assets/img/doctors/doctor-01.jpg"
+                            }
+                            alt={doc.name || "Doctor"}
+                            className="rounded-circle"
+                            width={50}
+                            height={50}
+                          />
+                        </Link>
+                        <div>
+                          <h6 className="mb-0 fw-bold">{doc.name}</h6>
+                          <p className="mb-0">{doc.specialization}</p>
+                          <p className="mb-0 fs-13">{doc.email}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                )}
+                    ))
+                  )}
 
                </div>
 
