@@ -101,11 +101,8 @@ const Header = () => {
     } catch (error) {
       console.error("Logout API error:", error);
     } finally {
-      // Clear tokens & user info
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("role");
-      localStorage.removeItem("hiddenLayoutActive");
+      // ✅ Clear ALL data from localStorage
+      localStorage.clear();
 
       // Prevent browser back navigation
       window.history.pushState(null, "", window.location.href);

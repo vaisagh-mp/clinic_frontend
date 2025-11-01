@@ -8,6 +8,7 @@ interface UserItem {
   id: number;
   name: string;
   role: string;
+  clinic_id: number | null;
 }
 
 const SidebarTop = () => {
@@ -31,10 +32,10 @@ const SidebarTop = () => {
         setUsers(userList);
 
         const storedId = localStorage.getItem("acting_as_user_id");
-if (storedId) {
-  const current = userList.find((u: UserItem) => u.id === Number(storedId));
-  setSelectedUser(current || null);
-}
+        if (storedId) {
+          const current = userList.find((u: UserItem) => u.id === Number(storedId));
+          setSelectedUser(current || null);
+        }
 
       } catch (err) {
         console.error("❌ Fetch users error:", err);
@@ -46,6 +47,7 @@ if (storedId) {
 
   // ✅ Handle switching between panels
   const handleSwitch = async (user: UserItem) => {
+    console.log(user)
     const token = localStorage.getItem("access_token");
     if (!token) return;
 
@@ -58,11 +60,19 @@ if (storedId) {
 
       const { access, acting_as, target_id, target_name } = res.data;
 
-      // ✅ Store new token & context
+      // ✅ Store new token & context including clinic_id
       localStorage.setItem("access_token", access);
       localStorage.setItem("acting_as_role", acting_as);
       localStorage.setItem("acting_as_user_id", target_id.toString());
       localStorage.setItem("acting_as_user_name", target_name);
+      
+      // ✅ Set clinic_id in localStorage
+      if (user.clinic_id) {
+        localStorage.setItem("clinic_id", user.clinic_id.toString());
+      } else {
+        // For superadmin or users without clinic_id, remove it or set to null
+        localStorage.removeItem("clinic_id");
+      }
 
       axios.defaults.headers.common["Authorization"] = `Bearer ${access}`;
 
@@ -99,6 +109,7 @@ if (storedId) {
             </h6>
             <p className="fs-13 mb-0 text-muted">
               {selectedUser?.role?.toUpperCase() || ""}
+              {/* {selectedUser?.clinic_id && ` (Clinic ID: ${selectedUser.clinic_id})`} */}
             </p>
           </div>
         </div>
@@ -115,7 +126,12 @@ if (storedId) {
               }`}
               onClick={() => handleSwitch(user)}
             >
-              <span>{user.name}</span>
+              <div className="d-flex flex-column align-items-start">
+                <span>{user.name}</span>
+                {/* {user.clinic_id && (
+                  <small className="text-muted">Clinic ID: {user.clinic_id}</small>
+                )} */}
+              </div>
               <small className="text-muted ms-2">
                 {user.role === "clinic"
                   ? "Clinic"

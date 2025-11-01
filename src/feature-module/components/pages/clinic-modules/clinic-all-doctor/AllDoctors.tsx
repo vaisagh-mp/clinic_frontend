@@ -8,7 +8,7 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 
 const AllDoctors = () => {
- const navigate = useNavigate();
+  const navigate = useNavigate();
   const [data, setData] = useState<any[]>([]);
   const [searchText, setSearchText] = useState<string>("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -26,7 +26,16 @@ const AllDoctors = () => {
         return;
       }
 
-      const res = await axios.get("http://3.109.62.26/api/clinic/doctors/", {
+      // ✅ Get clinic_id from localStorage
+      const clinicId = localStorage.getItem("clinic_id");
+      
+      // ✅ Build URL with clinic_id parameter if it exists
+      let apiUrl = "http://3.109.62.26/api/clinic/doctors/";
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
+
+      const res = await axios.get(apiUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -67,7 +76,15 @@ const AllDoctors = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("access_token");
-      await axios.delete(`http://3.109.62.26/api/clinic/doctors/${deleteId}/`, {
+      
+      // ✅ Get clinic_id for delete request if needed
+      const clinicId = localStorage.getItem("clinic_id");
+      let deleteUrl = `http://3.109.62.26/api/clinic/doctors/${deleteId}/`;
+      if (clinicId) {
+        deleteUrl += `?clinic_id=${clinicId}`;
+      }
+
+      await axios.delete(deleteUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -83,41 +100,40 @@ const AllDoctors = () => {
 
   // ✅ Download Excel function
   const handleDownloadExcel = () => {
-  if (data.length === 0) {
-    alert("No doctor data available to download.");
-    return;
-  }
+    if (data.length === 0) {
+      alert("No doctor data available to download.");
+      return;
+    }
 
-  // Try to extract clinic name from localStorage or first doctor record
-  const clinicName =
-    localStorage.getItem("clinic_name") ||
-    data[0]?.clinic_name ||
-    "Clinic";
+    // Try to extract clinic name from localStorage or first doctor record
+    const clinicName =
+      localStorage.getItem("clinic_name") ||
+      data[0]?.clinic_name ||
+      "Clinic";
 
-  // Format name safely (remove spaces/special chars)
-  const safeClinicName = clinicName.replace(/[^a-zA-Z0-9]/g, "_");
+    // Format name safely (remove spaces/special chars)
+    const safeClinicName = clinicName.replace(/[^a-zA-Z0-9]/g, "_");
 
-  const exportData = data.map((doc) => ({
-    Name: doc.name,
-    Username: doc.username,
-    Specialization: doc.specialization,
-    Phone: doc.phone_number,
-    Email: doc.email,
-    Experience: doc.years_of_experience,
-    MedicalLicense: doc.medical_license_number,
-    BloodGroup: doc.blood_group,
-    Gender: doc.gender,
-    Address: doc.address,
-  }));
+    const exportData = data.map((doc) => ({
+      Name: doc.name,
+      Username: doc.username,
+      Specialization: doc.specialization,
+      Phone: doc.phone_number,
+      Email: doc.email,
+      Experience: doc.years_of_experience,
+      MedicalLicense: doc.medical_license_number,
+      BloodGroup: doc.blood_group,
+      Gender: doc.gender,
+      Address: doc.address,
+    }));
 
-  const worksheet = XLSX.utils.json_to_sheet(exportData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Doctors");
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Doctors");
 
-  // ✅ dynamic file name
-  XLSX.writeFile(workbook, `${safeClinicName}_Doctors_List.xlsx`);
-};
-
+    // ✅ dynamic file name
+    XLSX.writeFile(workbook, `${safeClinicName}_Doctors_List.xlsx`);
+  };
 
   const columns = [
     {
@@ -157,11 +173,6 @@ const AllDoctors = () => {
       title: "Actions",
       render: (record: any) => (
         <div className="d-flex align-items-center">
-          {/* <div className="action-item me-2">
-            <Link to={all_routes.appointmentCalendar}>
-              <i className="ti ti-calendar-cog" />
-            </Link>
-          </div> */}
           <div className="action-item">
             <Link to="#" data-bs-toggle="dropdown">
               <i className="ti ti-dots-vertical" />
@@ -219,32 +230,32 @@ const AllDoctors = () => {
           </div>
 
           {/* Search + Export */}
-                    <div className="d-flex align-items-center justify-content-between mb-3">
-                      {/* Search Input */}
-                      <div className="table-search mb-3">
-                        <SearchInput
-                          value={searchText}
-                          onChange={(value) => setSearchText(value)}
-                        />
-                      </div>
-                    
-                      {/* Export Dropdown */}
-                      <div className="dropdown">
-                        <button
-                          className="btn btn-md fs-14 fw-normal border bg-white rounded text-dark d-inline-flex align-items-center"
-                          data-bs-toggle="dropdown"
-                        >
-                          Export <i className="ti ti-chevron-down ms-2" />
-                        </button>
-                        <ul className="dropdown-menu p-2">
-                          <li>
-                            <button className="dropdown-item" type="button" onClick={handleDownloadExcel}>
-                              Download as Excel
-                            </button>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
+          <div className="d-flex align-items-center justify-content-between mb-3">
+            {/* Search Input */}
+            <div className="table-search mb-3">
+              <SearchInput
+                value={searchText}
+                onChange={(value) => setSearchText(value)}
+              />
+            </div>
+          
+            {/* Export Dropdown */}
+            <div className="dropdown">
+              <button
+                className="btn btn-md fs-14 fw-normal border bg-white rounded text-dark d-inline-flex align-items-center"
+                data-bs-toggle="dropdown"
+              >
+                Export <i className="ti ti-chevron-down ms-2" />
+              </button>
+              <ul className="dropdown-menu p-2">
+                <li>
+                  <button className="dropdown-item" type="button" onClick={handleDownloadExcel}>
+                    Download as Excel
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
 
           <div className="table-responsive">
             <Datatable
