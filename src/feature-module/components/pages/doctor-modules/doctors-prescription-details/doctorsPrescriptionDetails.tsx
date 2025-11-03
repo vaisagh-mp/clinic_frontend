@@ -22,26 +22,35 @@ const DoctorsPrescriptionDetails = () => {
     const fetchPrescription = async () => {
       try {
         // ✅ Fetch list API to get created_at field
-        const listResponse = await axios.get(
-          "http://3.109.62.26/api/doctor/prescriptions/",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        // const listResponse = await axios.get(
+        //   "http://3.109.62.26/api/doctor/prescriptions/",
+        //   {
+        //     headers: {
+        //       Authorization: `Bearer ${token}`,
+        //       "Content-Type": "application/json",
+        //     },
+        //   }
+        // );
 
-        // Find the matching prescription from list API
-        const listItem = listResponse.data.find(
-          (item: any) =>
-            item.consultation_id === Number(prescriptionId) ||
-            item.id === Number(prescriptionId)
-        );
+        // // Find the matching prescription from list API
+        // const listItem = listResponse.data.find(
+        //   (item: any) =>
+        //     item.consultation_id === Number(prescriptionId) ||
+        //     item.id === Number(prescriptionId)
+        // );
+
+         // ✅ Get doctor_id from localStorage
+        const doctorId = localStorage.getItem("doctor_id");
+      
+        // ✅ Build URL with doctor_id parameter if it exists
+        let apiUrl = `http://3.109.62.26/api/doctor/prescriptions/${prescriptionId}/`;
+        if (doctorId) {
+          apiUrl += `?doctor_id=${doctorId}`;
+        }
 
         // ✅ Fetch detailed data
         const detailResponse = await axios.get(
-          `http://3.109.62.26/api/doctor/prescriptions/${prescriptionId}/`,
+         apiUrl,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -53,7 +62,7 @@ const DoctorsPrescriptionDetails = () => {
         // Merge created_at (from list) into detail data
         const finalData = {
           ...detailResponse.data,
-          created_at: listItem?.created_at || null,
+          // created_at: listItem?.created_at || null,
         };
 
         setPrescription(finalData);
