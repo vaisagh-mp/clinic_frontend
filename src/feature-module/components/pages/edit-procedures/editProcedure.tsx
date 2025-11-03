@@ -50,7 +50,7 @@ const EditProcedure = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("access_token");
 
-  // Redirect if not logged in
+  // ✅ Fetch Procedure (Superadmin Compatible)
   useEffect(() => {
     if (!token) {
       navigate("/login-cover");
@@ -59,13 +59,20 @@ const EditProcedure = () => {
 
     const fetchProcedure = async () => {
       try {
-        const res = await api.get(`procedures/${id}/`, {
+        const clinicId = localStorage.getItem("clinic_id");
+
+        // ✅ Attach clinic_id as query param if superadmin
+        const url = clinicId
+          ? `procedures/${id}/?clinic_id=${clinicId}`
+          : `procedures/${id}/`;
+
+        const res = await api.get(url, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setProcedure(res.data);
       } catch (error) {
         console.error("Error fetching procedure:", error);
-        alert("Failed to fetch procedure data");
+        alert("Failed to fetch procedure details");
         navigate(all_routes.ProcedureList);
       } finally {
         setLoading(false);
@@ -75,19 +82,31 @@ const EditProcedure = () => {
     fetchProcedure();
   }, [id, navigate, token]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  // ✅ Handle input changes
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setProcedure((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ✅ Update Procedure (Superadmin Compatible)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
     try {
-      await api.patch(`procedures/${id}/`, procedure, {
+      const clinicId = localStorage.getItem("clinic_id");
+
+      // ✅ Include clinic_id in query params if available
+      const url = clinicId
+        ? `procedures/${id}/?clinic_id=${clinicId}`
+        : `procedures/${id}/`;
+
+      await api.patch(url, procedure, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       alert("Procedure updated successfully!");
       navigate(all_routes.ProcedureList);
     } catch (error: any) {

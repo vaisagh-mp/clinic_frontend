@@ -34,17 +34,29 @@ const EditMedicine = () => {
     }
 
     const fetchMedicine = async () => {
-      try {
-        const res = await axios.get(`http://3.109.62.26/api/billing/medicines/${id}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setMedicine(res.data);
-      } catch (error) {
-        console.error("Error fetching medicine:", error);
-        alert("Failed to fetch medicine details");
-        navigate(all_routes.MedicineList);
-      }
-    };
+  try {
+    const clinicId = localStorage.getItem("clinic_id");
+    const role = localStorage.getItem("role"); // optional check for superadmin
+
+    // ✅ Add clinic_id to URL if available
+    const url = clinicId
+      ? `http://3.109.62.26/api/billing/medicines/${id}/?clinic_id=${clinicId}`
+      : `http://3.109.62.26/api/billing/medicines/${id}/`;
+
+    console.log("🔗 Fetching Medicine URL:", url);
+
+    const res = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    setMedicine(res.data);
+  } catch (error: any) {
+    console.error("❌ Error fetching medicine:", error.response?.data || error.message);
+    alert(error.response?.data?.detail || "Failed to fetch medicine details");
+    navigate(all_routes.MedicineList);
+  }
+};
+
 
     if (id) fetchMedicine();
   }, [id, token, navigate]);
@@ -55,25 +67,34 @@ const EditMedicine = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      await axios.put(`http://3.109.62.26/api/billing/medicines/${id}/`, medicine, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      alert("Medicine updated successfully!");
-      navigate(all_routes.MedicineList);
-    } catch (error: any) {
-      console.error("Error updating medicine:", error.response?.data || error.message);
-      alert(error.response?.data?.detail || error.message || "Failed to update medicine");
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const clinicId = localStorage.getItem("clinic_id");
+
+    // ✅ Append clinic_id to URL if available
+    const url = clinicId
+      ? `http://3.109.62.26/api/billing/medicines/${id}/?clinic_id=${clinicId}`
+      : `http://3.109.62.26/api/billing/medicines/${id}/`;
+
+    await axios.put(url, medicine, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    alert("✅ Medicine updated successfully!");
+    navigate(all_routes.MedicineList);
+  } catch (error: any) {
+    console.error("❌ Error updating medicine:", error.response?.data || error.message);
+    alert(error.response?.data?.detail || error.message || "Failed to update medicine");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <>

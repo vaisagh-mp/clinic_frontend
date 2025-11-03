@@ -16,50 +16,59 @@ const ClinicPrescriptions = () => {
   const [searchText, setSearchText] = useState<string>("");
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
+  const token = localStorage.getItem("access_token");
+  const clinicId = localStorage.getItem("clinic_id"); // ✅ get clinic_id from storage
 
-    if (!token) {
-      window.location.href = "/login-cover";
-      return;
-    }
+  if (!token) {
+    window.location.href = "/login-cover";
+    return;
+  }
 
-    const fetchPrescriptions = async () => {
-      try {
-        const response = await axios.get(
-          "http://3.109.62.26/api/clinic/prescriptions/",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+  const fetchPrescriptions = async () => {
+    try {
+      // ✅ Base API URL
+      let apiUrl = "http://3.109.62.26/api/clinic/prescriptions/";
 
-        const mappedData = response.data.map((item: any) => ({
-          Prescription_ID: item.id,
-          Patient: item.patient.full_name || "N/A",
-          img: "default-avatar.jpg",
-          phone_number: item.patient.phone_number || "N/A",
-          Doctor: item.doctor?.name || "N/A",
-          Prescribed_On: new Date(item.created_at).toLocaleDateString(),
-          Status: item.status || "Active",
-        }));
-
-        setData(mappedData);
-      } catch (error: any) {
-        if (error.response?.status === 401) {
-          localStorage.removeItem("access_token");
-          window.location.href = "/login-cover";
-        } else {
-          console.error("Error fetching prescriptions:", error);
-        }
-      } finally {
-        setLoading(false);
+      // ✅ If superadmin switched clinic, append ?clinic_id=XYZ
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
       }
-    };
 
-    fetchPrescriptions();
-  }, []);
+      const response = await axios.get(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const mappedData = response.data.map((item: any) => ({
+        Prescription_ID: item.id,
+        Patient: item.patient?.full_name || "N/A",
+        img: "default-avatar.jpg",
+        phone_number: item.patient?.phone_number || "N/A",
+        Doctor: item.doctor?.name || "N/A",
+        Prescribed_On: new Date(item.created_at).toLocaleDateString(),
+        Status: "Active",
+      }));
+
+
+      setData(mappedData);
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("access_token");
+        window.location.href = "/login-cover";
+      } else {
+        console.error("Error fetching prescriptions:", error.response?.data || error);
+        alert(error.response?.data?.detail || "Failed to fetch prescriptions");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchPrescriptions();
+}, []);
+
 
 
   const downloadExcel = () => {
@@ -140,36 +149,37 @@ const ClinicPrescriptions = () => {
         new Date(a.Prescribed_On).getTime() - new Date(b.Prescribed_On).getTime(),
     },
     {
-      title: "",
-      render: () => (
-        <div className="action-item">
-          <Link to="#" data-bs-toggle="dropdown">
-            <i className="ti ti-dots-vertical" />
+  title: "",
+  render: (_: any, record: any) => (
+    <div className="action-item">
+      <Link to="#" data-bs-toggle="dropdown">
+        <i className="ti ti-dots-vertical" />
+      </Link>
+      <ul className="dropdown-menu p-2">
+        <li>
+          <Link
+            to={`${all_routes.clinicPrescriptionsdetails}/${record.Prescription_ID}`}
+            className="dropdown-item d-flex align-items-center"
+          >
+            View
           </Link>
-          <ul className="dropdown-menu p-2">
-            <li>
-              <Link
-                to={all_routes.doctorspatientdetails}
-                className="dropdown-item d-flex align-items-center"
-              >
-                View
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="#"
-                className="dropdown-item d-flex align-items-center"
-                data-bs-toggle="modal"
-                data-bs-target="#delete_modal"
-              >
-                Delete
-              </Link>
-            </li>
-          </ul>
-        </div>
-      ),
-      sorter: (a: any, b: any) => 0,
-    },
+        </li>
+        <li>
+          <Link
+            to="#"
+            className="dropdown-item d-flex align-items-center"
+            data-bs-toggle="modal"
+            data-bs-target="#delete_modal"
+          >
+            Delete
+          </Link>
+        </li>
+      </ul>
+    </div>
+  ),
+  sorter: (a: any, b: any) => 0,
+}
+,
   ];
 
   return loading ? (

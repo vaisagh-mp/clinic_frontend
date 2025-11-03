@@ -65,9 +65,18 @@ const ClinicAppointments = () => {
 
   const fetchAppointments = async () => {
     try {
-      const res = await api.get("appointments/", {
+      const clinicId = localStorage.getItem("clinic_id"); // ✅ Get clinic_id from storage
+      let endpoint = "appointments/";
+
+      // ✅ Add clinic_id for Superadmin
+      if (clinicId) {
+        endpoint += `?clinic_id=${clinicId}`;
+      }
+
+      const res = await api.get(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       const appointments = Array.isArray(res.data)
         ? res.data
         : res.data.results || [];
@@ -84,10 +93,20 @@ const ClinicAppointments = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     setDeleting(true);
+
     try {
-      await api.delete(`appointments/${deleteId}/`, {
+      const clinicId = localStorage.getItem("clinic_id");
+      let endpoint = `appointments/${deleteId}/`;
+
+      // ✅ Add clinic_id parameter for Superadmin delete
+      if (clinicId) {
+        endpoint += `?clinic_id=${clinicId}`;
+      }
+
+      await api.delete(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setData((prev) => prev.filter((item) => item.id !== deleteId));
     } catch (error) {
       console.error("Delete failed:", error);

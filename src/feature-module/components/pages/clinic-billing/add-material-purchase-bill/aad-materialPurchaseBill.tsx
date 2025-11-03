@@ -31,22 +31,32 @@ const AddMaterialPurchaseBill = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [clinicLoading, setClinicLoading] = useState(true);
   const navigate = useNavigate();
 
-  // ✅ Auto-fetch clinic for logged-in clinic user
+  // ✅ Fetch clinic ID for logged-in user (with superadmin support)
   useEffect(() => {
     const fetchClinic = async () => {
       try {
         const token = localStorage.getItem("access_token");
         if (!token) throw new Error("No access token found");
 
-        const res = await axios.get("http://3.109.62.26/api/admin-panel/clinics/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // ✅ Check if superadmin has selected a clinic (from localStorage)
+        const storedClinicId = localStorage.getItem("clinic_id");
+        if (storedClinicId) {
+          setFormData((prev) => ({ ...prev, clinic: Number(storedClinicId) }));
+          setClinicLoading(false);
+          return;
+        }
+
+        // ✅ Otherwise, fetch clinic for the logged-in clinic user
+        const res = await axios.get(
+          "http://3.109.62.26/api/admin-panel/clinics/",
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
         let clinicId: number | null = null;
 
-        // handle both object and array responses
         if (res.data?.id) clinicId = res.data.id;
         else if (Array.isArray(res.data) && res.data.length > 0) {
           clinicId = res.data[0].id;
@@ -58,32 +68,31 @@ const AddMaterialPurchaseBill = () => {
       } catch (err: any) {
         console.error("Error fetching clinic:", err.response?.data || err.message);
         alert("Failed to fetch clinic. Please try again.");
+      } finally {
+        setClinicLoading(false);
       }
     };
 
     fetchClinic();
   }, []);
 
-  // Handle bill-level field changes
+  // ✅ Bill-level input change
   const handleBillChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // Handle item changes
-  const handleItemChange = (
-    index: number,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  // ✅ Item input change
+  const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const updated = [...formData.items];
     updated[index] = { ...updated[index], [name]: value };
     setFormData({ ...formData, items: updated });
   };
 
-  // Add a new item row
+  // ✅ Add new item row
   const addItemRow = () => {
     setFormData({
       ...formData,
@@ -91,41 +100,46 @@ const AddMaterialPurchaseBill = () => {
     });
   };
 
-  // Remove item row
+  // ✅ Remove item row
   const removeItemRow = (index: number) => {
     const updated = [...formData.items];
     updated.splice(index, 1);
     setFormData({ ...formData, items: updated });
   };
 
-  // Submit the whole bill with items
+  // ✅ Submit form (Superadmin Compatible)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (!formData.clinic) {
+      alert("Clinic is not set. Please try again.");
+      return;
+    }
 
+    setLoading(true);
     try {
       const token = localStorage.getItem("access_token");
       if (!token) throw new Error("No access token found");
 
-      // ✅ Use clinic-panel API endpoint
-      await axios.post(
-        "http://3.109.62.26/api/billing/clinic/material-purchase/",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      // ✅ Include clinic_id in URL if superadmin switched
+      const clinicId = localStorage.getItem("clinic_id");
+      let apiUrl = "http://3.109.62.26/api/billing/clinic/material-purchase/";
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
 
-      alert("Material Purchase Bill added successfully!");
+      await axios.post(apiUrl, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      alert("✅ Material Purchase Bill added successfully!");
       navigate(all_routes.clinicmaterialpurchasebillList);
     } catch (error: any) {
       console.error("Error adding bill:", error.response?.data || error.message);
       alert(
-        error.response?.data?.detail ||
-          JSON.stringify(error.response?.data) ||
+        JSON.stringify(error.response?.data, null, 2) ||
           error.message ||
           "Failed to add bill"
       );
@@ -133,6 +147,8 @@ const AddMaterialPurchaseBill = () => {
       setLoading(false);
     }
   };
+
+  if (clinicLoading) return <p>Loading clinic details...</p>;
 
   return (
     <>

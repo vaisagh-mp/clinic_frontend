@@ -24,7 +24,15 @@ const ClinicPatients = () => {
   const fetchPatients = async () => {
     try {
       const token = localStorage.getItem("access_token");
-      const response = await fetch("http://3.109.62.26/api/clinic/patients/", {
+      // ✅ Get clinic_id from localStorage
+      const clinicId = localStorage.getItem("clinic_id");
+      
+      // ✅ Build URL with clinic_id parameter if it exists
+      let apiUrl = "http://3.109.62.26/api/clinic/patients/";
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
+      const response = await fetch(apiUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -48,8 +56,16 @@ const ClinicPatients = () => {
 
     try {
       const token = localStorage.getItem("access_token");
-      const response = await fetch(
-        `http://3.109.62.26/api/clinic/patients/${deleteId}/`,
+      // ✅ Get clinic_id from localStorage
+      const clinicId = localStorage.getItem("clinic_id");
+      
+      // ✅ Build URL with clinic_id parameter if it exists
+      let apiUrl = `http://3.109.62.26/api/clinic/patients/${deleteId}/`;
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
+
+      const response = await fetch(apiUrl,
         {
           method: "DELETE",
           headers: {
@@ -218,7 +234,7 @@ const ClinicPatients = () => {
           <div className="flex-grow-1">
             <h4 className="fw-bold mb-0">
               Patients List
-              <span className="badge badge-soft-primary fw-medium border py-1 px-2 border-primary fs-13 ms-1">
+              <span className="badge badge-soft-primary fs-13 fw-medium ms-2">
                 Total Patients : {data.length}
               </span>
             </h4>

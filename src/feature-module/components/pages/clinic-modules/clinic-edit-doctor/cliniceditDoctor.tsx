@@ -34,9 +34,22 @@ const CliniceditDoctor = () => {
 
     const fetchDoctor = async () => {
       try {
-        const res = await axios.get(`http://3.109.62.26/api/clinic/doctors/${id}/`, {
-          headers: { Authorization: `Bearer ${token}` },
+        // ✅ Get clinic_id from localStorage
+        const clinicId = localStorage.getItem("clinic_id");
+      
+        // ✅ Build URL with clinic_id parameter if it exists
+        let apiUrl = `http://3.109.62.26/api/clinic/doctors/${id}/`;
+        if (clinicId) {
+          apiUrl += `?clinic_id=${clinicId}`;
+        }
+
+        const res = await axios.get(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         });
+       
         const doc = res.data;
         setFormData({
           name: doc.name || "",
@@ -85,18 +98,24 @@ const CliniceditDoctor = () => {
 
       const formPayload = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
-  if (key !== "password" && key !== "username") {
-    formPayload.append(key, String(value));
-  }
-});
+      if (key !== "password" && key !== "username") {
+        formPayload.append(key, String(value));
+      }
+      });
 
       if (profileImage) formPayload.append("profile_image", profileImage);
-
-      await axios.patch(
-        `http://3.109.62.26/api/clinic/doctors/${id}/`,
-        formPayload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // ✅ Get clinic_id from localStorage
+      const clinicId = localStorage.getItem("clinic_id");
+      let apiUrl = `http://3.109.62.26/api/clinic/doctors/${id}/`;
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
+      await axios.patch(apiUrl, formPayload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
 
       alert("Doctor updated successfully!");
       navigate(all_routes.clinicallDoctors);

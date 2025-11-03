@@ -48,14 +48,17 @@ api.interceptors.response.use(
 const ProcedureList = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("access_token");
+  const clinicId = localStorage.getItem("clinic_id");
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchText, setSearchText] = useState<string>("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Redirect to login if token missing & fetch procedures
+
+    // ✅ Fetch all procedures (superadmin-aware)
   useEffect(() => {
     if (!token) {
       navigate("/login-cover");
@@ -64,10 +67,20 @@ const ProcedureList = () => {
 
     const fetchProcedures = async () => {
       try {
-        const res = await api.get("procedures/", {
+        // ✅ Build endpoint dynamically
+        let url = "procedures/";
+        if (clinicId) {
+          url += `?clinic_id=${clinicId}`;
+        }
+
+        const res = await api.get(url, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const procedures = Array.isArray(res.data) ? res.data : res.data.results || [];
+
+        const procedures = Array.isArray(res.data)
+          ? res.data
+          : res.data.results || [];
+
         setData(procedures);
       } catch (error) {
         console.error("Error fetching procedures:", error);
@@ -78,25 +91,37 @@ const ProcedureList = () => {
     };
 
     fetchProcedures();
-  }, [navigate, token]);
+  }, [navigate, token, clinicId]);
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    setDeleting(true);
+  // ✅ Delete procedure (superadmin-aware)
+const handleDelete = async () => {
+  if (!deleteId) return;
+  setDeleting(true);
 
-    try {
-      await api.delete(`procedures/${deleteId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setData((prev) => prev.filter((item) => item.id !== deleteId));
-      setDeleteId(null);
-      (window as any).$(`#delete_modal`).modal("hide");
-    } catch (error) {
-      console.error("Error deleting procedure:", error);
-    } finally {
-      setDeleting(false);
+  try {
+    let url = `procedures/${deleteId}/`;
+    if (clinicId) {
+      url += `?clinic_id=${clinicId}`;
     }
-  };
+
+    await api.delete(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // ✅ Remove deleted procedure from state
+    setData((prev) => prev.filter((item) => item.id !== deleteId));
+
+    // ✅ Close modal using React state, not jQuery
+    setDeleteId(null);
+    setShowDeleteModal(false); // 👈 control this via React state
+  } catch (error) {
+    console.error("Error deleting procedure:", error);
+    alert("Failed to delete procedure.");
+  } finally {
+    setDeleting(false);
+  }
+};
+
 
   const downloadExcel = () => {
   if (!data || data.length === 0) {

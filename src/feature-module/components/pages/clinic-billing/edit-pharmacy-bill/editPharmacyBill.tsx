@@ -42,6 +42,7 @@ interface FormData {
 const EditPharmacyBill = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const token = localStorage.getItem("access_token");
 
   const [formData, setFormData] = useState<FormData>({
     patient_id: "",
@@ -56,18 +57,31 @@ const EditPharmacyBill = () => {
   const [loading, setLoading] = useState(false);
   const [loadingPatients, setLoadingPatients] = useState(false);
 
-  // Fetch Patients, Medicines, Procedures
+  // ✅ Redirect if not authenticated
   useEffect(() => {
+    if (!token) navigate("/login-cover");
+  }, [token, navigate]);
+
+  // ✅ Fetch Patients, Medicines, Procedures
+  useEffect(() => {
+    if (!token) return;
+
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-        if (!token) throw new Error("No access token found");
-
         setLoadingPatients(true);
+        const clinicId = localStorage.getItem("clinic_id");
+        const params = clinicId ? `?clinic_id=${clinicId}` : "";
+
         const [patientRes, medRes, procRes] = await Promise.all([
-          axios.get("http://3.109.62.26/api/clinic/patients/", { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get("http://3.109.62.26/api/billing/medicines/", { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get("http://3.109.62.26/api/billing/procedures/", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`http://3.109.62.26/api/clinic/patients/${params}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`http://3.109.62.26/api/billing/medicines/${params}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`http://3.109.62.26/api/billing/procedures/${params}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         setPatients(patientRes.data.results || patientRes.data);
@@ -80,23 +94,26 @@ const EditPharmacyBill = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [token]);
 
-  // Fetch existing bill
+  // ✅ Fetch existing bill (Superadmin-compatible)
   useEffect(() => {
-    if (!id || medicines.length === 0 || procedures.length === 0 || patients.length === 0) return;
+    if (!id || !token) return;
 
     const fetchBill = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-        if (!token) throw new Error("No access token found");
+        const clinicId = localStorage.getItem("clinic_id");
+        let apiUrl = `http://3.109.62.26/api/billing/clinic/pharmacy-bill/${id}/`;
+        if (clinicId) apiUrl += `?clinic_id=${clinicId}`;
 
-        const res = await axios.get(`http://3.109.62.26/api/billing/clinic/pharmacy-bill/${id}/`, {
+        const res = await axios.get(apiUrl, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         const bill = res.data;
-        const patientObj = patients.find((p) => `${p.first_name} ${p.last_name || ""}`.trim() === bill.patient.name);
+        const patientObj = patients.find(
+          (p) => `${p.first_name} ${p.last_name || ""}`.trim() === bill.patient.name
+        );
 
         const mappedItems: Item[] = bill.items.map((item: any) => {
           if (item.item_type === "MEDICINE") {
@@ -110,7 +127,7 @@ const EditPharmacyBill = () => {
               medicine: medObj ? medObj.id : item.medicine,
               procedure: null,
               quantity: item.quantity || 1,
-              unit_price: item.unit_price ? Number(item.unit_price) : 0,
+              unit_price: Number(item.unit_price) || 0,
             };
           } else if (item.item_type === "PROCEDURE") {
             const procObj = procedures.find(
@@ -123,27 +140,20 @@ const EditPharmacyBill = () => {
               procedure: procObj ? procObj.id : item.procedure,
               medicine: null,
               quantity: item.quantity || 1,
-              unit_price: item.unit_price ? Number(item.unit_price) : 0,
+              unit_price: Number(item.unit_price) || 0,
               procedure_payments: [
-                {
-                  amount_paid: item.total_paid || 0,
-                  notes: "", // If API has notes, replace here
-                },
+                { amount_paid: item.total_paid || 0, notes: "" },
               ],
             };
-          } else {
-            return { item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] };
           }
+          return { item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] };
         });
 
         setFormData({
           patient_id: patientObj?.id?.toString() || "",
           bill_date: bill.bill_date,
           status: bill.status,
-          items:
-            mappedItems.length > 0
-              ? mappedItems
-              : [{ item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] }],
+          items: mappedItems.length ? mappedItems : formData.items,
         });
       } catch (err: any) {
         console.error("Error fetching bill:", err.response?.data || err.message);
@@ -151,28 +161,32 @@ const EditPharmacyBill = () => {
     };
 
     fetchBill();
-  }, [id, medicines, procedures, patients]);
+  }, [id, token, patients, medicines, procedures]);
 
-  // Subtotal calculation
-  const calculateSubtotal = (item: Item) => {
-    if (item.item_type === "MEDICINE") {
-      if (typeof item.medicine === "number") {
-        const med = medicines.find((m) => m.id === item.medicine);
-        return med ? Number(med.unit_price) * item.quantity : item.unit_price || 0;
-      }
-      return item.unit_price || 0;
-    }
-    if (item.item_type === "PROCEDURE") {
-      if (typeof item.procedure === "number") {
-        const proc = procedures.find((p) => p.id === item.procedure);
-        return proc ? Number(proc.price) * item.quantity : item.unit_price || 0;
-      }
-      return item.unit_price || 0;
-    }
-    return 0;
-  };
 
-  // Handlers
+  // ✅ Calculate subtotal for each item
+const calculateSubtotal = (item: Item) => {
+  if (item.item_type === "MEDICINE") {
+    if (typeof item.medicine === "number") {
+      const med = medicines.find((m) => m.id === item.medicine);
+      return med ? Number(med.unit_price) * item.quantity : Number(item.unit_price) * item.quantity || 0;
+    }
+    return Number(item.unit_price) * item.quantity || 0;
+  }
+
+  if (item.item_type === "PROCEDURE") {
+    if (typeof item.procedure === "number") {
+      const proc = procedures.find((p) => p.id === item.procedure);
+      return proc ? Number(proc.price) * item.quantity : Number(item.unit_price) * item.quantity || 0;
+    }
+    return Number(item.unit_price) * item.quantity || 0;
+  }
+
+  return 0;
+};
+
+
+  // ✅ Input Handlers
   const handleBillChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -184,7 +198,11 @@ const EditPharmacyBill = () => {
     updated[index] = {
       ...updated[index],
       [name]:
-        name === "quantity" ? Number(value) : name === "medicine" || name === "procedure" ? Number(value) || value : value,
+        name === "quantity"
+          ? Number(value)
+          : name === "medicine" || name === "procedure"
+          ? Number(value) || value
+          : value,
     };
     if (name === "item_type") {
       updated[index].medicine = null;
@@ -194,12 +212,11 @@ const EditPharmacyBill = () => {
     setFormData({ ...formData, items: updated });
   };
 
-  const addItemRow = () => {
+  const addItemRow = () =>
     setFormData({
       ...formData,
       items: [...formData.items, { item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] }],
     });
-  };
 
   const removeItemRow = (index: number) => {
     const updated = [...formData.items];
@@ -207,6 +224,7 @@ const EditPharmacyBill = () => {
     setFormData({ ...formData, items: updated });
   };
 
+  // ✅ Procedure payments
   const handleProcedurePaymentChange = (itemIndex: number, paymentIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const updatedItems = [...formData.items];
@@ -231,7 +249,7 @@ const EditPharmacyBill = () => {
     setFormData({ ...formData, items: updatedItems });
   };
 
-  // Submit
+  // ✅ Submit (PUT/POST with superadmin compatibility)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -242,7 +260,7 @@ const EditPharmacyBill = () => {
           return;
         }
         for (const payment of item.procedure_payments) {
-          if (payment.amount_paid === null || payment.amount_paid === undefined || payment.amount_paid <= 0) {
+          if (!payment.amount_paid || payment.amount_paid <= 0) {
             alert("Please enter a valid Amount Paid for all procedure payments.");
             return;
           }
@@ -252,8 +270,14 @@ const EditPharmacyBill = () => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem("access_token");
       if (!token) throw new Error("No access token found");
+
+      const clinicId = localStorage.getItem("clinic_id");
+      const isEdit = Boolean(id);
+
+      let apiUrl = `http://3.109.62.26/api/billing/clinic/pharmacy-bill/`;
+      if (isEdit) apiUrl += `${id}/`;
+      if (clinicId) apiUrl += `?clinic_id=${clinicId}`;
 
       const payload = {
         ...formData,
@@ -267,15 +291,20 @@ const EditPharmacyBill = () => {
         })),
       };
 
-      await axios.put(
-        `http://3.109.62.26/api/billing/clinic/pharmacy-bill/${id}/`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+      if (isEdit) {
+        await axios.put(apiUrl, payload, { headers });
+        alert("Pharmacy Bill updated successfully!");
+      } else {
+        await axios.post(apiUrl, payload, { headers });
+        alert("Pharmacy Bill added successfully!");
+      }
 
       navigate(all_routes.clinicpharmacybillList);
     } catch (err: any) {
-      console.error("Error updating bill:", err.response?.data || err.message);
+      console.error("Error saving bill:", err.response?.data || err.message);
+      alert(err.response?.data?.detail || err.message || "Failed to save bill");
     } finally {
       setLoading(false);
     }

@@ -32,13 +32,18 @@ const AddClinicBill = () => {
   const navigate = useNavigate();
 
   // 🔹 Handle bill-level field changes
-  const handleBillChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleBillChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
   // 🔹 Handle item changes
-  const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleItemChange = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const { name, value } = e.target;
     const updatedItems = [...formData.items];
     updatedItems[index] = { ...updatedItems[index], [name]: value };
@@ -60,7 +65,7 @@ const AddClinicBill = () => {
     setFormData({ ...formData, items: updatedItems });
   };
 
-  // 🔹 Submit form
+  // 🔹 Submit form (superadmin-compatible)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -69,8 +74,14 @@ const AddClinicBill = () => {
       const token = localStorage.getItem("access_token");
       if (!token) throw new Error("No access token found");
 
-      // ✅ Backend automatically assigns clinic based on logged-in user
-      const payload = {
+      const clinicId = localStorage.getItem("clinic_id");
+
+      // ✅ Build API URL with optional clinic_id for superadmin
+      let apiUrl = "http://3.109.62.26/api/billing/clinic/clinic-bill/";
+      if (clinicId) apiUrl += `?clinic_id=${clinicId}`;
+
+      // ✅ Payload (include clinic_id if superadmin)
+      const payload: any = {
         vendor_name: formData.vendor_name,
         bill_date: formData.bill_date,
         status: formData.status,
@@ -81,16 +92,14 @@ const AddClinicBill = () => {
         })),
       };
 
-      await axios.post(
-        "http://3.109.62.26/api/billing/clinic/clinic-bill/",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`, // ✅ FIXED — backticks added
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      if (clinicId) payload.clinic = Number(clinicId); // Include for superadmin
+
+      await axios.post(apiUrl, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       alert("✅ Clinic Bill added successfully!");
       navigate(all_routes.clinicpanelclinicbillList);

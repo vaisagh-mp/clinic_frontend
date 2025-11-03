@@ -68,9 +68,16 @@ const ClinicCreatePatient = () => {
       if (profileImage) {
         formDataToSend.append("profile_image", profileImage);
       }
-
+      // ✅ Get clinic_id from localStorage
+      const clinicId = localStorage.getItem("clinic_id");
+      
+      // ✅ Build URL with clinic_id parameter if it exists
+      let apiUrl = `http://3.109.62.26/api/clinic/patients/`;
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
       const response = await axios.post(
-        "http://3.109.62.26/api/clinic/patients/",
+        apiUrl,
         formDataToSend,
         {
           headers: {
@@ -322,7 +329,7 @@ const ClinicCreatePatient = () => {
 
               {/* Submit */}
               <div className="d-flex align-items-center justify-content-end">
-                <Link to="#" className="btn btn-light me-2">
+                <Link to={all_routes.clinicpatients} className="btn btn-light me-2">
                   Cancel
                 </Link>
                 <button type="submit" className="btn btn-primary">

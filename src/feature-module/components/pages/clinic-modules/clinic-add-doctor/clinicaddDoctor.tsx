@@ -434,7 +434,7 @@ import Header from "../../../../../core/common/header/header";
 import Sidebarthree from "../../../../../core/common/sidebarthree/sidebarthree";
 
 const ClinicaddDoctor = () => {
-  const { clinic_id } = useParams(); // ✅ Detect if Superadmin acting as clinic
+  // const { clinic_id } = useParams(); // ✅ Detect if Superadmin acting as clinic
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -496,9 +496,18 @@ const ClinicaddDoctor = () => {
       if (profileImage) formPayload.append("profile_image", profileImage);
 
       // ✅ Smart URL switch: Superadmin acting as clinic OR normal clinic user
-      const apiUrl = clinic_id
-        ? `http://3.109.62.26/api/clinic/superadmin/${clinic_id}/doctors/`
-        : `http://3.109.62.26/api/clinic/doctors/`;
+      // const apiUrl = clinic_id
+      //   ? `http://3.109.62.26/api/clinic/superadmin/${clinic_id}/doctors/`
+      //   : `http://3.109.62.26/api/clinic/doctors/`;
+
+      // ✅ Get clinic_id from localStorage
+      const clinicId = localStorage.getItem("clinic_id");
+      
+      // ✅ Build URL with clinic_id parameter if it exists
+      let apiUrl = "http://3.109.62.26/api/clinic/doctors/";
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
 
       const response = await axios.post(apiUrl, formPayload, {
         headers: {

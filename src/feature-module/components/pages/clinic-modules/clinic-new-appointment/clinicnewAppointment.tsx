@@ -9,10 +9,12 @@ const Appointment_Type = [
   { value: "Consultation", label: "Consultation" },
   { value: "Follow-up", label: "Follow-up" },
 ];
+
 const Department = [
   { value: "Cardiology", label: "Cardiology" },
   { value: "Neurology", label: "Neurology" },
 ];
+
 const Status_Checkout = [
   { value: "SCHEDULED", label: "Scheduled" },
   { value: "COMPLETED", label: "Completed" },
@@ -23,6 +25,7 @@ const ClinicnewAppointment = () => {
   const navigate = useNavigate();
   const [patients, setPatients] = useState<{ value: number; label: string }[]>([]);
   const [doctors, setDoctors] = useState<{ value: number; label: string }[]>([]);
+
   const [formData, setFormData] = useState({
     appointmentId: "AP234354",
     patient: "",
@@ -45,15 +48,39 @@ const ClinicnewAppointment = () => {
 
     const fetchData = async () => {
       try {
+        const clinicId = localStorage.getItem("clinic_id");
+        const tokenHeader = { headers: { Authorization: `Bearer ${token}` } };
+
+        // ✅ Build URLs
+        let patientsUrl = "http://3.109.62.26/api/clinic/patients/";
+        let doctorsUrl = "http://3.109.62.26/api/clinic/doctors/";
+        if (clinicId) {
+          patientsUrl += `?clinic_id=${clinicId}`;
+          doctorsUrl += `?clinic_id=${clinicId}`;
+        }
+
+        // ✅ Fetch both lists in parallel
         const [patientsRes, doctorsRes] = await Promise.all([
-          axios.get("http://3.109.62.26/api/clinic/patients/", { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get("http://3.109.62.26/api/clinic/doctors/", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(patientsUrl, tokenHeader),
+          axios.get(doctorsUrl, tokenHeader),
         ]);
 
-        setPatients(patientsRes.data.map((p: any) => ({ value: p.id, label: `${p.first_name} ${p.last_name || ""}`.trim() })));
-        setDoctors(doctorsRes.data.map((d: any) => ({ value: d.id, label: d.name || `${d.user?.first_name || ""} ${d.user?.last_name || ""}`.trim() })));
+        // ✅ Set dropdowns
+        setPatients(
+          patientsRes.data.map((p: any) => ({
+            value: p.id,
+            label: `${p.first_name} ${p.last_name || ""}`.trim(),
+          }))
+        );
 
-        // default select first option if available
+        setDoctors(
+          doctorsRes.data.map((d: any) => ({
+            value: d.id,
+            label: d.name || `${d.user?.first_name || ""} ${d.user?.last_name || ""}`.trim(),
+          }))
+        );
+
+        // ✅ Default select first available patient & doctor
         setFormData((prev) => ({
           ...prev,
           patient: patientsRes.data[0]?.id || "",
@@ -67,12 +94,19 @@ const ClinicnewAppointment = () => {
     fetchData();
   }, [navigate, token]);
 
-  const getModalContainer = () => document.getElementById("modal-datepicker") || document.body;
+  const getModalContainer = () =>
+    document.getElementById("modal-datepicker") || document.body;
 
   const handleSubmit = async () => {
     try {
+      const clinicId = localStorage.getItem("clinic_id");
+      let apiUrl = `http://3.109.62.26/api/clinic/appointments/`;
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
+
       await axios.post(
-        "http://3.109.62.26/api/clinic/appointments/",
+        apiUrl,
         {
           patient_id: formData.patient,
           doctor_id: formData.doctor,
@@ -81,8 +115,11 @@ const ClinicnewAppointment = () => {
           reason: formData.reason,
           status: formData.status,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
+
       alert("Appointment created successfully!");
       navigate(all_routes.clinicappointments);
     } catch (err) {

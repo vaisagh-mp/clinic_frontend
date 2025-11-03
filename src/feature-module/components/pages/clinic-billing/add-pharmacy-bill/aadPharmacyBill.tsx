@@ -42,34 +42,61 @@ interface FormData {
 
 const AddPharmacyBill = () => {
   const [formData, setFormData] = useState<FormData>({
-  patient_id: "",
-  bill_date: "",
-  status: "PENDING",
-  items: [{ item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] }],
-});
+    patient_id: "",
+    bill_date: "",
+    status: "PENDING",
+    items: [
+      {
+        item_type: "",
+        medicine: null,
+        procedure: null,
+        quantity: 1,
+        procedure_payments: [],
+      },
+    ],
+  });
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [loading, setLoading] = useState(false);
 
-  
   const navigate = useNavigate();
 
+  // ✅ Fetch data (Superadmin Compatible)
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("access_token");
         if (!token) throw new Error("No access token found");
 
-        const patientRes = await axios.get("http://3.109.62.26/api/clinic/patients/", {
+        // ✅ Get clinic_id if superadmin switched
+        const clinicId = localStorage.getItem("clinic_id");
+
+        // ✅ Build base URLs
+        let patientUrl = "http://3.109.62.26/api/clinic/patients/";
+        let medUrl = "http://3.109.62.26/api/billing/medicines/";
+        let procUrl = "http://3.109.62.26/api/billing/procedures/";
+
+        // ✅ Append clinic_id if exists
+        if (clinicId) {
+          patientUrl += `?clinic_id=${clinicId}`;
+          medUrl += `?clinic_id=${clinicId}`;
+          procUrl += `?clinic_id=${clinicId}`;
+        }
+
+        const patientRes = await axios.get(patientUrl, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setPatients(patientRes.data.results || patientRes.data);
 
         const [medRes, procRes] = await Promise.all([
-          axios.get("http://3.109.62.26/api/billing/medicines/", { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get("http://3.109.62.26/api/billing/procedures/", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(medUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(procUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         setMedicines(medRes.data);
@@ -84,28 +111,31 @@ const AddPharmacyBill = () => {
 
   const [modalMessage, setModalMessage] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-
   const closeModal = () => setShowModal(false);
 
-
   const calculateSubtotal = (item: Item) => {
-  if (item.item_type === "MEDICINE" && item.medicine) {
-    const med = medicines.find((m) => m.id === item.medicine);
-    return med ? Number(med.unit_price) * item.quantity : 0;
-  }
-  if (item.item_type === "PROCEDURE" && item.procedure) {
-    const proc = procedures.find((p) => p.id === item.procedure);
-    return proc ? Number(proc.price) * item.quantity : 0; // keep using proc.price if procedures have it
-  }
-  return 0;
-};
+    if (item.item_type === "MEDICINE" && item.medicine) {
+      const med = medicines.find((m) => m.id === item.medicine);
+      return med ? Number(med.unit_price) * item.quantity : 0;
+    }
+    if (item.item_type === "PROCEDURE" && item.procedure) {
+      const proc = procedures.find((p) => p.id === item.procedure);
+      return proc ? Number(proc.price) * item.quantity : 0;
+    }
+    return 0;
+  };
 
-  const handleBillChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleBillChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleItemChange = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     const updated = [...formData.items];
 
@@ -125,7 +155,6 @@ const AddPharmacyBill = () => {
       updated[index].procedure_payments = [];
     }
 
-    // Check stock if medicine is selected
     if (name === "medicine" && value) {
       const med = medicines.find((m) => m.id === Number(value));
       if (med && med.stock < 3) {
@@ -134,14 +163,22 @@ const AddPharmacyBill = () => {
       }
     }
 
-
     setFormData({ ...formData, items: updated });
   };
 
   const addItemRow = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { item_type: "", medicine: null, procedure: null, quantity: 1, procedure_payments: [] }],
+      items: [
+        ...formData.items,
+        {
+          item_type: "",
+          medicine: null,
+          procedure: null,
+          quantity: 1,
+          procedure_payments: [],
+        },
+      ],
     });
   };
 
@@ -188,6 +225,7 @@ const AddPharmacyBill = () => {
     setFormData({ ...formData, items: updatedItems });
   };
 
+
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setLoading(true);
@@ -213,28 +251,39 @@ const AddPharmacyBill = () => {
 
     const payload = { ...formData, items: cleanedItems };
 
-    // Save pharmacy bill
-    const response = await axios.post(
-      "http://3.109.62.26/api/billing/clinic/pharmacy-bill/",
-      payload,
-      {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      }
-    );
+    // ✅ Include clinic_id in URL if superadmin switched
+const clinicId = localStorage.getItem("clinic_id");
+let apiUrl = "http://3.109.62.26/api/billing/clinic/pharmacy-bill/";
 
-    const billId = response.data.id; // ✅ get the new bill ID
-    alert("Pharmacy Bill added successfully!");
+// Build config for axios
+const config = {
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  },
+  params: {} as any,
+};
 
-    // Redirect to clinic view pharmacy bill page
-    navigate(`/clinic-dashboard/view-pharmacy-bill/${billId}`);
+// Append clinic_id if available
+if (clinicId) {
+  config.params.clinic_id = clinicId;
+}
+
+const response = await axios.post(apiUrl, payload, config);
+
+alert("✅ Pharmacy Bill added successfully!");
+
+// 🧭 Safe delayed navigation to avoid alert blocking
+setTimeout(() => {
+  navigate(all_routes.clinicpharmacybillList);
+}, 100);
   } catch (err: any) {
     console.error("Error adding pharmacy bill:", err.response?.data || err.message);
-    alert(err.response?.data?.detail || "Failed to add bill");
+    alert(err.response?.data?.detail || "❌ Failed to add bill");
   } finally {
     setLoading(false);
   }
 };
-
 
   return (
     <>

@@ -156,58 +156,70 @@ const ClinicpatientDetails = () => {
 
   const fetchPatient = async () => {
     try {
+      // ✅ Superadmin support: read clinic_id from localStorage
+      const clinicId = localStorage.getItem("clinic_id");
+
+      // ✅ Helper to append ?clinic_id= if available
+      const withClinic = (url: string) =>
+        clinicId ? `${url}${url.includes("?") ? "&" : "?"}clinic_id=${clinicId}` : url;
+
       // --- Fetch patient details ---
-      const res = await axios.get(
-        `http://3.109.62.26/api/clinic/patients/${id}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const patientUrl = withClinic(
+        `http://3.109.62.26/api/clinic/patients/${id}/`
       );
+      const res = await axios.get(patientUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = res.data || {};
-      
+
       // --- Fetch appointments ---
-      const appointmentsRes = await axios.get(
-        `http://3.109.62.26/api/clinic/appointments/?patient_id=${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const appointmentsUrl = withClinic(
+        `http://3.109.62.26/api/clinic/appointments/?patient_id=${id}`
       );
+      const appointmentsRes = await axios.get(appointmentsUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const appointmentsData =
         appointmentsRes.data.results || appointmentsRes.data || [];
 
-
       // --- Fetch billing / procedure data ---
-const billingRes = await axios.get(
-  `http://3.109.62.26/api/billing/clinic/pharmacy-bill/?patient_id=${id}`,
-  { headers: { Authorization: `Bearer ${token}` } }
-);
-const billingData = billingRes.data.results || billingRes.data || [];
-
-const procedureItems: FlattenedProcedureItem[] = [];
-
-billingData.forEach((bill: any) => {
-  const formattedBillDate = bill.bill_date
-    ? new Date(bill.bill_date).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "N/A";
-
-  bill.items
-    .filter((item: any) => item.item_type === "PROCEDURE")
-    .forEach((item: any) => {
-      procedureItems.push({
-        id: item.id,
-        bill_number: bill.bill_number,
-        bill_date: formattedBillDate,
-        doctor_name: bill.doctor_name,
-        procedure_name: item.procedure,
-        subtotal: item.subtotal,
-        total_paid: item.total_paid,
-        balance_due: item.balance_due,
+      const billingUrl = withClinic(
+        `http://3.109.62.26/api/billing/clinic/pharmacy-bill/?patient_id=${id}`
+      );
+      const billingRes = await axios.get(billingUrl, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-    });
-});
+      const billingData = billingRes.data.results || billingRes.data || [];
 
-setProcedures(procedureItems);
-  
+      const procedureItems: FlattenedProcedureItem[] = [];
+
+      billingData.forEach((bill: any) => {
+        const formattedBillDate = bill.bill_date
+          ? new Date(bill.bill_date).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "N/A";
+
+        bill.items
+          .filter((item: any) => item.item_type === "PROCEDURE")
+          .forEach((item: any) => {
+            procedureItems.push({
+              id: item.id,
+              bill_number: bill.bill_number,
+              bill_date: formattedBillDate,
+              doctor_name: bill.doctor_name,
+              procedure_name: item.procedure,
+              subtotal: item.subtotal,
+              total_paid: item.total_paid,
+              balance_due: item.balance_due,
+            });
+          });
+      });
+
+      setProcedures(procedureItems);
+
       // --- Format appointments date & time ---
       const formatDateTime = (date: string, time: string) => {
         if (!date) return "N/A";
@@ -227,92 +239,92 @@ setProcedures(procedureItems);
       };
 
       const formattedAppointments = appointmentsData.map((item: any) => ({
-  id: item.id,
-  appointmentId: item.appointment_id,
-  dateTime: formatDateTime(item.appointment_date, item.appointment_time),
-  doctorName: item.doctor?.name || "N/A",
-  doctorImage:
-    item.doctor?.profile_image
-      ? `http://3.109.62.26${item.doctor.profile_image}`
-      : "assets/img/doctors/doctor-01.jpg",
-  specialization: item.doctor?.specialization || "N/A",
-  clinic: item.clinic?.name || "N/A",
-  status: item.status || "N/A",
-  doctorId: item.doctor?.id || 0,
-  appointmentDate: item.appointment_date,
-}));
-
-
+        id: item.id,
+        appointmentId: item.appointment_id,
+        dateTime: formatDateTime(item.appointment_date, item.appointment_time),
+        doctorName: item.doctor?.name || "N/A",
+        doctorImage: item.doctor?.profile_image
+          ? `http://3.109.62.26${item.doctor.profile_image}`
+          : "assets/img/doctors/doctor-01.jpg",
+        specialization: item.doctor?.specialization || "N/A",
+        clinic: item.clinic?.name || "N/A",
+        status: item.status || "N/A",
+        doctorId: item.doctor?.id || 0,
+        appointmentDate: item.appointment_date,
+      }));
 
       setAppointments(formattedAppointments);
 
       // --- Find last visited (latest completed appointment) ---
       const completedAppointments = formattedAppointments.filter(
-          (a: FormattedAppointment) => a.status === "COMPLETED"
-        );
-        
-        const lastVisited =
-          completedAppointments.length > 0
-            ? completedAppointments.sort(
-                (a: FormattedAppointment, b: FormattedAppointment) =>
-                  new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()
-              )[0].dateTime
-            : "N/A";
+        (a: FormattedAppointment) => a.status === "COMPLETED"
+      );
+
+      const lastVisited =
+        completedAppointments.length > 0
+          ? completedAppointments.sort(
+              (a: FormattedAppointment, b: FormattedAppointment) =>
+                new Date(b.appointmentDate).getTime() -
+                new Date(a.appointmentDate).getTime()
+            )[0].dateTime
+          : "N/A";
 
       // --- Fetch consultations for this patient ---
-      const consultationsRes = await axios.get(
-        `http://3.109.62.26/api/clinic/consultations/?patient_id=${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const consultationsUrl = withClinic(
+        `http://3.109.62.26/api/clinic/consultations/?patient_id=${id}`
       );
+      const consultationsRes = await axios.get(consultationsUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const consultationsData: Consultation[] = consultationsRes.data || [];
-      
+
       // --- Get the latest consultation for vital signs ---
       const latestConsultation =
         consultationsData.length > 0
           ? consultationsData.sort(
               (a: Consultation, b: Consultation) =>
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                new Date(b.created_at).getTime() -
+                new Date(a.created_at).getTime()
             )[0]
           : null;
-          
-     setPatient({
-  id: data.id || 0,
-  name:
-    data.first_name && data.last_name
-      ? `${data.first_name} ${data.last_name}`
-      : data.first_name || "N/A",
-  dob: data.dob || "N/A",
-  bloodGroup: data.blood_group || "N/A",
-  gender: data.gender || "N/A",
-  email: data.email || "N/A",
-  phone: data.phone_number || "N/A",
-  address: data.address || "N/A",
-  lastVisited,
-  careOf: data.care_of || "N/A",
-  allergies: latestConsultation?.allergies || "N/A",
-  vitalSigns: latestConsultation
-    ? {
-        bloodPressure: latestConsultation.blood_pressure || "N/A",
-        heartRate: latestConsultation.heart_rate || "N/A",
-        spo2: latestConsultation.spo2 || "N/A",
-        temperature: latestConsultation.temperature || "N/A",
-        respiratoryRate: latestConsultation.respiratory_rate || "N/A",
-        weight: latestConsultation.weight || "N/A",
-      }
-    : {
-        bloodPressure: "N/A",
-        heartRate: "N/A",
-        spo2: "N/A",
-        temperature: "N/A",
-        respiratoryRate: "N/A",
-        weight: "N/A",
-      },
-  // ✅ Add the attachment URL here
-  attachmentUrl: data.attachment
-    ? `http://3.109.62.26${data.attachment}`
-    : null,
-});
 
+      // --- Set Patient Data ---
+      setPatient({
+        id: data.id || 0,
+        name:
+          data.first_name && data.last_name
+            ? `${data.first_name} ${data.last_name}`
+            : data.first_name || "N/A",
+        dob: data.dob || "N/A",
+        bloodGroup: data.blood_group || "N/A",
+        gender: data.gender || "N/A",
+        email: data.email || "N/A",
+        phone: data.phone_number || "N/A",
+        address: data.address || "N/A",
+        lastVisited,
+        careOf: data.care_of || "N/A",
+        allergies: latestConsultation?.allergies || "N/A",
+        vitalSigns: latestConsultation
+          ? {
+              bloodPressure: latestConsultation.blood_pressure || "N/A",
+              heartRate: latestConsultation.heart_rate || "N/A",
+              spo2: latestConsultation.spo2 || "N/A",
+              temperature: latestConsultation.temperature || "N/A",
+              respiratoryRate: latestConsultation.respiratory_rate || "N/A",
+              weight: latestConsultation.weight || "N/A",
+            }
+          : {
+              bloodPressure: "N/A",
+              heartRate: "N/A",
+              spo2: "N/A",
+              temperature: "N/A",
+              respiratoryRate: "N/A",
+              weight: "N/A",
+            },
+        attachmentUrl: data.attachment
+          ? `http://3.109.62.26${data.attachment}`
+          : null,
+      });
     } catch (err) {
       console.error("Error fetching patient, appointment or consultation data:", err);
     }
@@ -320,6 +332,7 @@ setProcedures(procedureItems);
 
   fetchPatient();
 }, [id, navigate]);
+
 
 // ✅ Appointment pagination
 const [currentPage, setCurrentPage] = useState(1);

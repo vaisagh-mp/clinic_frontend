@@ -33,13 +33,22 @@ const AddLabBill = () => {
   const [clinicLoading, setClinicLoading] = useState(true);
   const navigate = useNavigate();
 
-  // ✅ Fetch clinic ID for logged-in user
+  // ✅ Fetch clinic ID for logged-in user (with superadmin support)
   useEffect(() => {
     const fetchClinic = async () => {
       try {
         const token = localStorage.getItem("access_token");
         if (!token) throw new Error("No access token found");
 
+        // ✅ Check if superadmin has selected a clinic
+        const storedClinicId = localStorage.getItem("clinic_id");
+        if (storedClinicId) {
+          setFormData((prev) => ({ ...prev, clinic: Number(storedClinicId) }));
+          setClinicLoading(false);
+          return;
+        }
+
+        // ✅ Otherwise, fetch clinic for the logged-in user
         const res = await axios.get(
           "http://3.109.62.26/api/admin-panel/clinics/",
           { headers: { Authorization: `Bearer ${token}` } }
@@ -97,7 +106,7 @@ const AddLabBill = () => {
     setFormData({ ...formData, items: updated });
   };
 
-  // ✅ Submit form
+  // ✅ Submit form (Superadmin Compatible)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.clinic) {
@@ -110,25 +119,28 @@ const AddLabBill = () => {
       const token = localStorage.getItem("access_token");
       if (!token) throw new Error("No access token found");
 
-      await axios.post(
-        "http://3.109.62.26/api/billing/clinic/lab-bill/",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      // ✅ Include clinic_id in URL if superadmin is switching
+      const clinicId = localStorage.getItem("clinic_id");
+      let apiUrl = "http://3.109.62.26/api/billing/clinic/lab-bill/";
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
 
-      alert("Clinic Bill added successfully!");
+      await axios.post(apiUrl, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      alert("Lab Bill added successfully!");
       navigate(all_routes.clinicpanellabbillList);
     } catch (error: any) {
-      console.error("Error adding clinic bill:", error.response?.data || error.message);
+      console.error("Error adding lab bill:", error.response?.data || error.message);
       alert(
         JSON.stringify(error.response?.data, null, 2) ||
           error.message ||
-          "Failed to add clinic bill"
+          "Failed to add lab bill"
       );
     } finally {
       setLoading(false);
@@ -150,7 +162,7 @@ const AddLabBill = () => {
                   <h6 className="fw-bold mb-0 d-flex align-items-center">
                     <Link to={all_routes.clinicpanellabbillList}> 
                       <i className="ti ti-chevron-left me-1 fs-14" />
-                      Clinic Bills
+                      Lab Bills
                     </Link>
                   </h6>
                 </div>
@@ -159,7 +171,7 @@ const AddLabBill = () => {
               {/* Form */}
               <div className="card">
                 <div className="card-body">
-                  <h5 className="fs-18 fw-bold mb-3">Add Clinic Bill</h5>
+                  <h5 className="fs-18 fw-bold mb-3">Add Lab Bill</h5>
                   <form onSubmit={handleSubmit}>
                     <div className="row">
                       {/* ✅ Lab Name */}

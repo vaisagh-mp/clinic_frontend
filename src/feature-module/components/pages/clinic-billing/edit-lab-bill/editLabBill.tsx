@@ -6,6 +6,7 @@ import Header from "../../../../../core/common/header/header";
 import Sidebar from "../../../../../core/common/sidebar/sidebarAdmin";
 import Sidebarthree from "../../../../../core/common/sidebarthree/sidebarthree";
 
+
 interface Item {
   test_or_service: string;
   cost: number | string;
@@ -22,6 +23,7 @@ interface LabBill {
 const EditLabBill = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState<LabBill>({
     lab_name: "",
     work_description: "",
@@ -32,25 +34,29 @@ const EditLabBill = () => {
 
   const [loading, setLoading] = useState(false);
 
-  // Fetch existing bill data
+  // ✅ Fetch existing lab bill (superadmin-compatible)
   useEffect(() => {
     const fetchBill = async () => {
       try {
         const token = localStorage.getItem("access_token");
+        const clinicId = localStorage.getItem("clinic_id");
         if (!token) throw new Error("No access token found");
 
-        const res = await axios.get(
-          `http://3.109.62.26/api/billing/clinic/lab-bill/${id}/`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        // ✅ Build API URL dynamically
+        let apiUrl = `http://3.109.62.26/api/billing/clinic/lab-bill/${id}/`;
+        if (clinicId) {
+          apiUrl += `?clinic_id=${clinicId}`;
+        }
+
+        const res = await axios.get(apiUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         setFormData({
-          lab_name: res.data.lab_name,
-          work_description: res.data.work_description,
-          bill_date: res.data.bill_date,
-          status: res.data.status,
+          lab_name: res.data.lab_name || "",
+          work_description: res.data.work_description || "",
+          bill_date: res.data.bill_date || "",
+          status: res.data.status || "PENDING",
           items:
             res.data.items && res.data.items.length > 0
               ? res.data.items
@@ -64,7 +70,7 @@ const EditLabBill = () => {
     if (id) fetchBill();
   }, [id]);
 
-  // Bill-level field change
+  // ✅ Handle main bill field changes
   const handleBillChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -72,7 +78,7 @@ const EditLabBill = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // Item field change
+  // ✅ Handle item row change
   const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const updated = [...formData.items];
@@ -80,7 +86,7 @@ const EditLabBill = () => {
     setFormData({ ...formData, items: updated });
   };
 
-  // Add new item row
+  // ✅ Add new item row
   const addItemRow = () => {
     setFormData({
       ...formData,
@@ -88,40 +94,41 @@ const EditLabBill = () => {
     });
   };
 
-  // Remove item row
+  // ✅ Remove item row
   const removeItemRow = (index: number) => {
     const updated = [...formData.items];
     updated.splice(index, 1);
     setFormData({ ...formData, items: updated });
   };
 
-  // Submit form (update)
+  // ✅ Submit form (superadmin-compatible update)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const token = localStorage.getItem("access_token");
+      const clinicId = localStorage.getItem("clinic_id");
       if (!token) throw new Error("No access token found");
 
-      await axios.put(
-        `http://3.109.62.26/api/billing/clinic/lab-bill/${id}/`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      // ✅ Build API URL dynamically for superadmin
+      let apiUrl = `http://3.109.62.26/api/billing/clinic/lab-bill/${id}/`;
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
 
-      alert("Lab Bill updated successfully!");
+      await axios.put(apiUrl, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      alert("✅ Lab Bill updated successfully!");
       navigate(all_routes.clinicpanellabbillList);
     } catch (error: any) {
       console.error("Error updating lab bill:", error.response?.data || error.message);
-      alert(
-        error.response?.data?.detail || error.message || "Failed to update lab bill"
-      );
+      alert(error.response?.data?.detail || error.message || "Failed to update lab bill");
     } finally {
       setLoading(false);
     }

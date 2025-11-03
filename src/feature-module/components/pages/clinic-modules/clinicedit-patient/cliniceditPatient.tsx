@@ -35,8 +35,16 @@ const ClinicEditPatient = () => {
           navigate("/login-cover");
           return;
         }
+        // ✅ Get clinic_id from localStorage
+        const clinicId = localStorage.getItem("clinic_id");
+        
+        // ✅ Build URL with clinic_id parameter if it exists
+        let apiUrl = "http://3.109.62.26/api/admin-panel/clinics/";
+        if (clinicId) {
+          apiUrl += `?clinic_id=${clinicId}`;
+        }
         const response = await axios.get(
-          "http://3.109.62.26/api/admin-panel/clinics/",
+          apiUrl,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setClinics(response.data);
@@ -56,8 +64,16 @@ const ClinicEditPatient = () => {
           navigate("/login-cover");
           return;
         }
+        // ✅ Get clinic_id from localStorage
+        const clinicId = localStorage.getItem("clinic_id");
+        
+        // ✅ Build URL with clinic_id parameter if it exists
+        let apiUrl = `http://3.109.62.26/api/admin-panel/patients/${id}/`;
+        if (clinicId) {
+          apiUrl += `?clinic_id=${clinicId}`;
+        }
         const response = await axios.get(
-          `http://3.109.62.26/api/admin-panel/patients/${id}/`,
+          apiUrl,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
@@ -125,9 +141,16 @@ const ClinicEditPatient = () => {
       if (profileImage) {
         formDataToSend.append("profile_image", profileImage);
       }
-
+      // ✅ Get clinic_id from localStorage
+      const clinicId = localStorage.getItem("clinic_id");
+      
+      // ✅ Build URL with clinic_id parameter if it exists
+      let apiUrl = `http://3.109.62.26/api/admin-panel/patients/${id}/`;
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
       const response = await axios.patch(
-        `http://3.109.62.26/api/admin-panel/patients/${id}/`,
+        apiUrl,
         formDataToSend,
         {
           headers: {

@@ -34,36 +34,50 @@ const ViewMaterialPurchaseBill = () => {
   const [bill, setBill] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // ✅ Fetch bill and handle auth
-  useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      navigate("/login-cover");
-      return;
-    }
+  // ✅ Fetch Material Purchase Bill (Clinic Endpoint + Superadmin Support)
+useEffect(() => {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    navigate("/login-cover");
+    return;
+  }
 
-    const fetchBill = async () => {
-      try {
-        const response = await axios.get(
-          `http://3.109.62.26/api/billing/clinic/material-purchase/${id}/`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setBill(response.data);
-      } catch (error: any) {
-        console.error("Error fetching bill:", error);
-        if (error.response?.status === 401) {
-          localStorage.removeItem("access_token");
-          navigate("/login-cover");
-        }
-      } finally {
-        setLoading(false);
+  const fetchBill = async () => {
+    try {
+      // ✅ Get clinic_id from localStorage (for superadmin)
+      const clinicId = localStorage.getItem("clinic_id");
+
+      // ✅ Build API URL dynamically
+      let apiUrl = `http://3.109.62.26/api/billing/clinic/material-purchase/${id}/`;
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
       }
-    };
 
-    fetchBill();
-  }, [id, navigate]);
+      // ✅ Fetch Bill Data
+      const response = await axios.get(apiUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setBill(response.data);
+    } catch (error: any) {
+      console.error("Error fetching bill:", error);
+
+      // ✅ Handle common auth errors
+      if (error.response?.status === 401) {
+        localStorage.removeItem("access_token");
+        navigate("/login-cover");
+      } else if (error.response?.data?.detail) {
+        alert(error.response.data.detail);
+      } else if (error.response?.status === 403) {
+        alert("You are not authorized to view this bill.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchBill();
+}, [id, navigate]);
 
   if (loading) return <p>Loading bill details...</p>;
   if (!bill) return <p>No bill data found.</p>;

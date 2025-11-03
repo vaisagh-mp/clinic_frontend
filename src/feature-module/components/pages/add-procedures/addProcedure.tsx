@@ -11,16 +11,17 @@ interface Procedure {
   price: string;
 }
 
-// Axios instance with authentication
+// Axios instance with base URL
 const api = axios.create({
   baseURL: "http://3.109.62.26/api/billing/",
 });
 
-// Interceptor for token refresh
+// Token refresh interceptor
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
@@ -41,6 +42,7 @@ api.interceptors.response.use(
         window.location.href = "/login-cover";
       }
     }
+
     return Promise.reject(error);
   }
 );
@@ -72,7 +74,7 @@ const AddProcedure = () => {
     setProcedures(updated);
   };
 
-  // Add a new procedure row
+  // Add new procedure row
   const addProcedureRow = () => {
     setProcedures([...procedures, { name: "", description: "", price: "" }]);
   };
@@ -84,7 +86,7 @@ const AddProcedure = () => {
     setProcedures(updated);
   };
 
-  // Submit all procedures
+  // ✅ Submit all procedures (Superadmin Compatible)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -92,14 +94,21 @@ const AddProcedure = () => {
     try {
       if (!token) throw new Error("No access token found");
 
+      const clinicId = localStorage.getItem("clinic_id");
       let successCount = 0;
       let failureCount = 0;
 
+      // Loop through each procedure
       for (const procedure of procedures) {
         try {
-          await api.post("procedures/", procedure, {
+          const url = clinicId
+            ? `procedures/?clinic_id=${clinicId}` // ✅ Append clinic_id if superadmin
+            : `procedures/`;
+
+          await api.post(url, procedure, {
             headers: { Authorization: `Bearer ${token}` },
           });
+
           successCount++;
         } catch (err: any) {
           console.error("Error adding procedure:", err.response?.data || err.message);
@@ -107,10 +116,11 @@ const AddProcedure = () => {
         }
       }
 
+      // ✅ Display summary messages
       if (failureCount === 0) {
         alert("All procedures added successfully!");
       } else if (successCount > 0) {
-        alert(`${successCount} procedures added, ${failureCount} failed.`);
+        alert(`${successCount} procedures added successfully, ${failureCount} failed.`);
       } else {
         alert("Failed to add procedures.");
       }
@@ -123,6 +133,7 @@ const AddProcedure = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <>

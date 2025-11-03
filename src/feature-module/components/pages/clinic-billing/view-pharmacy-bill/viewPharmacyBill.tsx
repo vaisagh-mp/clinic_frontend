@@ -48,28 +48,49 @@ const ViewPharmacyBill = () => {
   const { id } = useParams();
   const printRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    document.title = "Preclinic - Medical & Hospital "; // Clean title
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      navigate("/login-cover");
-      return;
-    }
+useEffect(() => {
+  document.title = "Preclinic - Medical & Hospital";
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    navigate("/login-cover");
+    return;
+  }
 
-    const fetchBill = async () => {
-      try {
-        const response = await axios.get(
-          `http://3.109.62.26/api/billing/clinic/pharmacy-bill/${id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setBillData(response.data);
-      } catch (error) {
-        console.error("Failed to fetch bill data:", error);
+  const fetchBill = async () => {
+    try {
+      // ✅ Get clinic_id from localStorage (Superadmin support)
+      const clinicId = localStorage.getItem("clinic_id");
+
+      // ✅ Build API URL dynamically
+      let apiUrl = `http://3.109.62.26/api/billing/clinic/pharmacy-bill/${id}/`;
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
       }
-    };
 
-    fetchBill();
-  }, [id, navigate]);
+      // ✅ Fetch Bill Data
+      const response = await axios.get(apiUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setBillData(response.data);
+    } catch (error: any) {
+      console.error("Failed to fetch bill data:", error);
+
+      // ✅ Handle common auth errors
+      if (error.response?.status === 401) {
+        localStorage.removeItem("access_token");
+        navigate("/login-cover");
+      } else if (error.response?.data?.detail) {
+        alert(error.response.data.detail);
+      } else if (error.response?.status === 403) {
+        alert("You are not authorized to view this bill.");
+      }
+    }
+  };
+
+  fetchBill();
+}, [id, navigate]);
+
 
   if (!billData) {
     return <div className="text-center mt-5">Loading...</div>;

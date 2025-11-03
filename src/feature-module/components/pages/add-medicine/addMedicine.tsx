@@ -21,10 +21,7 @@ const AddMedicine = () => {
   const navigate = useNavigate();
 
   // Handle input change for each medicine
-  const handleChange = (
-    index: number,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const updated = [...medicines];
     updated[index] = { ...updated[index], [name]: value };
@@ -53,24 +50,28 @@ const AddMedicine = () => {
 
     try {
       const token = localStorage.getItem("access_token");
+      const clinicId = localStorage.getItem("clinic_id"); // ✅ for superadmin
+
       if (!token) throw new Error("No access token found");
 
       let successCount = 0;
       let failureCount = 0;
 
+      // ✅ Build base URL
+      let baseUrl = "http://3.109.62.26/api/billing/medicines/";
+      if (clinicId) {
+        baseUrl += `?clinic_id=${clinicId}`;
+      }
+
       // Loop through each medicine and send separately
       for (const med of medicines) {
         try {
-          await axios.post(
-            "http://3.109.62.26/api/billing/medicines/",
-            med, // single dictionary
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
+          await axios.post(baseUrl, med, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
           successCount++;
         } catch (err: any) {
           console.error("Error adding medicine:", err.response?.data || err.message);
@@ -79,13 +80,11 @@ const AddMedicine = () => {
       }
 
       if (failureCount === 0) {
-        alert("All medicines added successfully!");
+        alert("✅ All medicines added successfully!");
       } else if (successCount > 0) {
-        alert(
-          `${successCount} medicines added successfully, ${failureCount} failed.`
-        );
+        alert(`⚠️ ${successCount} medicines added successfully, ${failureCount} failed.`);
       } else {
-        alert("Failed to add medicines.");
+        alert("❌ Failed to add medicines.");
       }
 
       navigate(all_routes.MedicineList);

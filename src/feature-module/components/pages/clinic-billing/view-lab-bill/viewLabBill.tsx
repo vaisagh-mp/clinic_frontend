@@ -25,18 +25,27 @@ const ViewLabBill = () => {
 
     const fetchBill = async () => {
       try {
-        const response = await axios.get(
-          `http://3.109.62.26/api/billing/clinic/lab-bill/${id}/`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        // ✅ Get clinic_id from localStorage (superadmin support)
+        const clinicId = localStorage.getItem("clinic_id");
+
+        // ✅ Build API URL dynamically
+        let apiUrl = `http://3.109.62.26/api/billing/clinic/lab-bill/${id}/`;
+        if (clinicId) {
+          apiUrl += `?clinic_id=${clinicId}`;
+        }
+
+        const response = await axios.get(apiUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
         setBill(response.data);
       } catch (error: any) {
         console.error("Error fetching bill:", error);
         if (error.response?.status === 401) {
           localStorage.removeItem("access_token");
           navigate("/login-cover");
+        } else if (error.response?.data?.detail) {
+          alert(error.response.data.detail);
         }
       } finally {
         setLoading(false);
@@ -48,7 +57,6 @@ const ViewLabBill = () => {
 
   if (loading) return <p>Loading bill details...</p>;
   if (!bill) return <p>No bill data found.</p>;
-
   const { bill_number, bill_date, lab_name, work_description, status, items } = bill;
 
   // ✅ Download XLS

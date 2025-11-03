@@ -68,60 +68,104 @@ const PharmacyBills = () => {
   const [deleting, setDeleting] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!token) {
-      navigate("/login-cover");
-      return;
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    navigate("/login-cover");
+    return;
+  }
+  fetchBills();
+}, [navigate]);
+
+// ✅ Fetch Pharmacy Bills (with superadmin support)
+const fetchBills = async () => {
+  try {
+    const token = localStorage.getItem("access_token");
+    const clinicId = localStorage.getItem("clinic_id");
+
+    // ✅ Build API URL dynamically for superadmin
+    let apiUrl = "http://3.109.62.26/api/billing/clinic/pharmacy-bill/";
+    if (clinicId) {
+      apiUrl += `?clinic_id=${clinicId}`;
     }
 
-    const fetchBills = async () => {
-      try {
-        // Clinic-specific API
-        const res = await api.get("billing/clinic/pharmacy-bill/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    const response = await fetch(apiUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
 
-        const bills = Array.isArray(res.data) ? res.data : res.data.results || [];
-
-        const formattedBills = bills.map((b: any) => ({
-          ...b,
-          total_amount: parseFloat(b.total_amount) || 0,
-          patient_name: b.patient?.name || "N/A",  // 👈 use ?.name
-          patient_id: b.patient?.id || b.patient?.id,
-          balance_due: b.items?.reduce((sum: number, item: any) => sum + (item.balance_due || 0), 0) || 0,
-        }));
-
-
-        setData(formattedBills);
-      } catch (error) {
-        console.error("Error fetching bills:", error);
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBills();
-  }, [navigate, token]);
-
-  // Delete pharmacy bill
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    setDeleting(true);
-
-    try {
-      await api.delete(`billing/clinic/pharmacy-bill/${deleteId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setData((prev) => prev.filter((item) => item.id !== deleteId));
-      setDeleteId(null);
-      (window as any).$(`#delete_modal`).modal("hide");
-    } catch (error) {
-      console.error("Error deleting bill:", error);
-    } finally {
-      setDeleting(false);
+    if (!response.ok) {
+      throw new Error("Failed to fetch pharmacy bills");
     }
-  };
+
+    const result = await response.json();
+
+    // ✅ Handle paginated or non-paginated responses
+    const bills = Array.isArray(result)
+      ? result
+      : result.results || [];
+
+    // ✅ Format data
+    const formattedBills = bills.map((b: any) => ({
+      ...b,
+      total_amount: parseFloat(b.total_amount) || 0,
+      patient_name: b.patient?.name || "N/A",
+      patient_id: b.patient?.id || b.patient?.id,
+      balance_due:
+        b.items?.reduce(
+          (sum: number, item: any) => sum + (item.balance_due || 0),
+          0
+        ) || 0,
+    }));
+
+    setData(formattedBills);
+  } catch (error) {
+    console.error("Error fetching pharmacy bills:", error);
+    setData([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// ✅ Delete Pharmacy Bill (with superadmin support)
+const handleDelete = async () => {
+  if (!deleteId) return;
+  setDeleting(true);
+
+  try {
+    const token = localStorage.getItem("access_token");
+    const clinicId = localStorage.getItem("clinic_id");
+
+    let apiUrl = `http://3.109.62.26/api/billing/clinic/pharmacy-bill/${deleteId}/`;
+    if (clinicId) {
+      apiUrl += `?clinic_id=${clinicId}`;
+    }
+
+    const response = await fetch(apiUrl, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete pharmacy bill");
+    }
+
+    // ✅ Remove deleted bill from state
+    setData((prev) => prev.filter((item) => item.id !== deleteId));
+    setDeleteId(null);
+    (window as any).$(`#delete_modal`).modal("hide");
+  } catch (error) {
+    console.error("Error deleting pharmacy bill:", error);
+    alert("Error deleting pharmacy bill");
+  } finally {
+    setDeleting(false);
+  }
+};
+
 
   // Table columns
   const columns = [

@@ -30,51 +30,81 @@ const ClinicBills = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
 
+  // ✅ useEffect - fetch bills on mount
   useEffect(() => {
+    const token = localStorage.getItem("access_token");
     if (!token) {
       navigate("/login-cover");
       return;
     }
-
-    const fetchBills = async () => {
-      try {
-        const res = await axios.get(
-          "http://3.109.62.26/api/billing/clinic/clinic-bill/",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const bills = Array.isArray(res.data) ? res.data : res.data.results || [];
-        setData(bills);
-      } catch (error) {
-        console.error("Error fetching bills:", error);
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchBills();
-  }, [navigate, token]);
+  }, [navigate]);
 
-  // Handle Delete
+  // ✅ Fetch bills (superadmin-safe)
+  const fetchBills = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const clinicId = localStorage.getItem("clinic_id");
+
+      let apiUrl = "http://3.109.62.26/api/billing/clinic/clinic-bill/";
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
+
+      const response = await fetch(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch bills");
+      }
+
+      const result = await response.json();
+      const bills = Array.isArray(result) ? result : result.results || [];
+      setData(bills);
+    } catch (error) {
+      console.error("Error fetching bills:", error);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Handle Delete (superadmin-safe)
   const handleDelete = async () => {
     if (!deleteId) return;
     setDeleting(true);
 
     try {
-      await axios.delete(
-        `http://3.109.62.26/api/billing/clinic/clinic-bill/${deleteId}/`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const token = localStorage.getItem("access_token");
+      const clinicId = localStorage.getItem("clinic_id");
+
+      let apiUrl = `http://3.109.62.26/api/billing/clinic/clinic-bill/${deleteId}/`;
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
+
+      const response = await fetch(apiUrl, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete bill");
+      }
 
       setData((prev) => prev.filter((item) => item.id !== deleteId));
       setDeleteId(null);
       (window as any).$(`#delete_modal`).modal("hide");
     } catch (error) {
       console.error("Error deleting bill:", error);
+      alert("Error deleting bill");
     } finally {
       setDeleting(false);
     }

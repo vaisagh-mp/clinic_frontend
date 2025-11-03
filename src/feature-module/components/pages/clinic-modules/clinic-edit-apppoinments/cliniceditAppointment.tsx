@@ -5,6 +5,27 @@ import { DatePicker, TimePicker } from "antd";
 import dayjs from "dayjs";
 import { all_routes } from "../../../../routes/all_routes";
 
+
+type PatientOption = {
+  id: number;
+  first_name: string;
+  last_name?: string;
+};
+
+type DoctorOption = {
+  id: number;
+  name?: string;
+  user?: {
+    first_name?: string;
+    last_name?: string;
+  };
+};
+
+type ClinicOption = {
+  id: number;
+  name: string;
+};
+
 const Appointment_Type = [
   { value: "Consultation", label: "Consultation" },
   { value: "Follow-up", label: "Follow-up" },
@@ -47,53 +68,78 @@ const CliniceditAppointment = () => {
     }
 
     const fetchData = async () => {
-      try {
-        // Fetch dropdown data
-        const [patientsRes, doctorsRes, clinicsRes] = await Promise.all([
-          axios.get("http://3.109.62.26/api/clinic/patients/", { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get("http://3.109.62.26/api/clinic/doctors/", { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get("http://3.109.62.26/api/clinic/appointments/", { headers: { Authorization: `Bearer ${token}` } }), // only for clinic data if needed
-        ]);
+  try {
+    const clinicId = localStorage.getItem("clinic_id");
+    const tokenHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-        setPatients(
-          patientsRes.data.map((p: any) => ({ value: p.id, label: `${p.first_name} ${p.last_name || ""}`.trim() }))
-        );
+    // ✅ Base URLs
+    let patientsUrl = "http://3.109.62.26/api/clinic/patients/";
+    let doctorsUrl = "http://3.109.62.26/api/clinic/doctors/";
+    let appointmentsUrl = "http://3.109.62.26/api/clinic/appointments/";
 
-        setDoctors(
-          doctorsRes.data.map((d: any) => ({
-            value: d.id,
-            label: d.name || `${d.user?.first_name || ""} ${d.user?.last_name || ""}`.trim(),
-          }))
-        );
+    // ✅ Add ?clinic_id=XYZ for superadmin context
+    if (clinicId) {
+      patientsUrl += `?clinic_id=${clinicId}`;
+      doctorsUrl += `?clinic_id=${clinicId}`;
+      appointmentsUrl += `?clinic_id=${clinicId}`;
+    }
 
-        setClinics(
-          clinicsRes.data.map((c: any) => ({ value: c.id, label: c.name }))
-        );
+    // ✅ Fetch dropdown data in parallel
+    const [patientsRes, doctorsRes, clinicsRes] = await Promise.all([
+      axios.get<PatientOption[]>(patientsUrl, tokenHeader),
+      axios.get<DoctorOption[]>(doctorsUrl, tokenHeader),
+      axios.get<ClinicOption[]>(appointmentsUrl, tokenHeader),
+    ]);
 
-        // Fetch appointment by ID
-        const appointmentRes = await axios.get(`http://3.109.62.26/api/clinic/appointments/${id}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    setPatients(
+      patientsRes.data.map((p: PatientOption) => ({
+        value: p.id,
+        label: `${p.first_name} ${p.last_name || ""}`.trim(),
+      }))
+    );
 
-        const appt = appointmentRes.data;
+    setDoctors(
+      doctorsRes.data.map((d: DoctorOption) => ({
+        value: d.id,
+        label: d.name || `${d.user?.first_name || ""} ${d.user?.last_name || ""}`.trim(),
+      }))
+    );
 
-        setFormData({
-          appointmentId: appt.id || "",
-          patient: appt.patient?.id || "",
-          doctor: appt.doctor?.id || "",
-          clinic: appt.clinic?.id || "",
-          department: appt.department || Department[0].value,
-          appointmentType: appt.appointment_type || Appointment_Type[0].value,
-          appointmentDate: appt.appointment_date || "",
-          appointmentTime: appt.appointment_time || "",
-          reason: appt.reason || "",
-          status: appt.status || Status_Checkout[0].value,
-        });
-      } catch (err) {
-        console.error(err);
-        alert("Failed to fetch appointment data");
-      }
-    };
+    setClinics(
+      clinicsRes.data.map((c: ClinicOption) => ({
+        value: c.id,
+        label: c.name,
+      }))
+    );
+
+    // ✅ Fetch single appointment by ID
+    let appointmentUrl = `http://3.109.62.26/api/clinic/appointments/${id}/`;
+    if (clinicId) {
+      appointmentUrl += `?clinic_id=${clinicId}`;
+    }
+
+    const appointmentRes = await axios.get(appointmentUrl, tokenHeader);
+    const appt = appointmentRes.data;
+
+    setFormData({
+      appointmentId: appt.id || "",
+      patient: appt.patient?.id || "",
+      doctor: appt.doctor?.id || "",
+      clinic: appt.clinic?.id || "",
+      department: appt.department || Department[0].value,
+      appointmentType: appt.appointment_type || Appointment_Type[0].value,
+      appointmentDate: appt.appointment_date || "",
+      appointmentTime: appt.appointment_time || "",
+      reason: appt.reason || "",
+      status: appt.status || Status_Checkout[0].value,
+    });
+  } catch (err) {
+    console.error(err);
+    alert("Failed to fetch appointment data");
+  }
+};
+
+
 
     fetchData();
   }, [navigate, token, id]);
@@ -102,8 +148,13 @@ const CliniceditAppointment = () => {
 
   const handleSubmit = async () => {
     try {
+      const clinicId = localStorage.getItem("clinic_id");
+      const url = clinicId
+        ? `http://3.109.62.26/api/clinic/appointments/${id}/?clinic_id=${clinicId}`
+        : `http://3.109.62.26/api/clinic/appointments/${id}/`;
+
       await axios.put(
-        `http://3.109.62.26/api/clinic/appointments/${id}/`,
+        url,
         {
           patient_id: formData.patient,
           doctor_id: formData.doctor,
@@ -115,6 +166,7 @@ const CliniceditAppointment = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       alert("Appointment updated successfully!");
       navigate(all_routes.clinicappointments);
     } catch (err) {
@@ -122,6 +174,7 @@ const CliniceditAppointment = () => {
       alert("Failed to update appointment");
     }
   };
+
 
   return (
     <div className="page-wrapper">

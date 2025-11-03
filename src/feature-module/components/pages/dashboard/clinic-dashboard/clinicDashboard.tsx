@@ -318,7 +318,7 @@ const ClinicDashboard = () => {
                             <div className="d-flex align-items-center">
                               <div>
                                 <h6 className="fs-14 mb-1">
-                                  <Link to={`${all_routes.clinicpatientdetails}/${appt.patient.id}`} className="fw-medium">
+                                  <Link to="#" className="fw-medium">
                                     {appt.patient.first_name} {appt.patient.last_name}
                                   </Link>
                                 </h6>

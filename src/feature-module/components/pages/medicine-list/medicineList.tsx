@@ -54,7 +54,7 @@ const MedicineList = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
 
-  // Redirect to login if token missing & fetch medicines
+  // ✅ Fetch medicines (with clinic_id if superadmin)
   useEffect(() => {
     if (!token) {
       navigate("/login-cover");
@@ -63,10 +63,22 @@ const MedicineList = () => {
 
     const fetchMedicines = async () => {
       try {
-        const res = await api.get("medicines/", {
+        setLoading(true);
+
+        const clinicId = localStorage.getItem("clinic_id"); // ✅ active clinic context
+        let apiUrl = "medicines/";
+        if (clinicId) {
+          apiUrl += `?clinic_id=${clinicId}`;
+        }
+
+        const res = await api.get(apiUrl, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const medicines = Array.isArray(res.data) ? res.data : res.data.results || [];
+
+        const medicines = Array.isArray(res.data)
+          ? res.data
+          : res.data.results || [];
+
         setData(medicines);
       } catch (error) {
         console.error("Error fetching medicines:", error);
@@ -79,15 +91,22 @@ const MedicineList = () => {
     fetchMedicines();
   }, [navigate, token]);
 
-  // Handle delete
+  // ✅ Handle delete (with clinic_id if superadmin)
   const handleDelete = async () => {
     if (!deleteId) return;
     setDeleting(true);
 
     try {
-      await api.delete(`medicines/${deleteId}/`, {
+      const clinicId = localStorage.getItem("clinic_id");
+      let apiUrl = `medicines/${deleteId}/`;
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
+
+      await api.delete(apiUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setData((prev) => prev.filter((item) => item.id !== deleteId));
       setDeleteId(null);
       (window as any).$(`#delete_modal`).modal("hide");
@@ -98,39 +117,45 @@ const MedicineList = () => {
     }
   };
 
+  // ✅ Download Excel (unchanged)
   const downloadExcel = () => {
-  if (!data || data.length === 0) {
-    alert("No medicine data available to download.");
-    return;
-  }
+    if (!data || data.length === 0) {
+      alert("No medicine data available to download.");
+      return;
+    }
 
-  // Extract clinic name dynamically (if medicines have clinic info)
-  // Here assuming all medicines belong to the same clinic
-  const clinicName = data[0]?.clinic?.name?.replace(/\s+/g, "_") || "Clinic";
+    const clinicName =
+      data[0]?.clinic?.name?.replace(/\s+/g, "_") || "Clinic";
 
-  // Format data for Excel
-  const formattedData = data.map((item) => ({
-    "ID": item.id,
-    "Name": item.name,
-    "Dosage": item.dosage,
-    "Stock": item.stock,
-    "Unit Price": item.unit_price,
-    "Expiry Date": item.expiry_date,
-  }));
+    const formattedData = data.map((item) => ({
+      ID: item.id,
+      Name: item.name,
+      Dosage: item.dosage,
+      Stock: item.stock,
+      "Unit Price": item.unit_price,
+      "Expiry Date": item.expiry_date,
+    }));
 
-  const worksheet = XLSX.utils.json_to_sheet(formattedData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Medicines");
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Medicines");
 
-  const filename = `${clinicName}_Medicines_List.xlsx`;
-  XLSX.writeFile(workbook, filename);
-};
-
+    const filename = `${clinicName}_Medicines_List.xlsx`;
+    XLSX.writeFile(workbook, filename);
+  };
 
   const columns = [
     { title: "ID", dataIndex: "id", sorter: (a: any, b: any) => a.id - b.id },
-    { title: "Name", dataIndex: "name", sorter: (a: any, b: any) => a.name.localeCompare(b.name) },
-    { title: "Dosage", dataIndex: "dosage", sorter: (a: any, b: any) => a.dosage.localeCompare(b.dosage) },
+    {
+      title: "Name",
+      dataIndex: "name",
+      sorter: (a: any, b: any) => a.name.localeCompare(b.name),
+    },
+    {
+      title: "Dosage",
+      dataIndex: "dosage",
+      sorter: (a: any, b: any) => a.dosage.localeCompare(b.dosage),
+    },
     { title: "Stock", dataIndex: "stock", sorter: (a: any, b: any) => a.stock - b.stock },
     {
       title: "Unit Price",
@@ -138,7 +163,11 @@ const MedicineList = () => {
       render: (price: string) => `₹${price}`,
       sorter: (a: any, b: any) => parseFloat(a.unit_price) - parseFloat(b.unit_price),
     },
-    { title: "Expiry Date", dataIndex: "expiry_date", sorter: (a: any, b: any) => a.expiry_date.localeCompare(b.expiry_date) },
+    {
+      title: "Expiry Date",
+      dataIndex: "expiry_date",
+      sorter: (a: any, b: any) => a.expiry_date.localeCompare(b.expiry_date),
+    },
     {
       title: "Actions",
       render: (record: any) => (
@@ -147,7 +176,6 @@ const MedicineList = () => {
             <i className="ti ti-dots-vertical" />
           </Link>
           <ul className="dropdown-menu p-2">
-            {/* EDIT link with actual ID */}
             <li>
               <Link
                 to={`${all_routes.editMedicine}/${record.id}`}
@@ -156,7 +184,6 @@ const MedicineList = () => {
                 Edit
               </Link>
             </li>
-            {/* DELETE */}
             <li>
               <Link
                 to="#"

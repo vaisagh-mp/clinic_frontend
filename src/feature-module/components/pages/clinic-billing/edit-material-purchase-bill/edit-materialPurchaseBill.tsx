@@ -48,7 +48,7 @@ const EditMaterialPurchaseBill = () => {
     if (!token) navigate("/login-cover");
   }, [token, navigate]);
 
-  // ✅ Fetch clinics
+  // ✅ Fetch Clinics (for superadmin only)
   useEffect(() => {
     if (!token) return;
 
@@ -62,43 +62,50 @@ const EditMaterialPurchaseBill = () => {
         console.error("Error fetching clinics:", err.response?.data || err.message);
       }
     };
+
     fetchClinics();
   }, [token]);
 
-  // ✅ Fetch bill data (clinic endpoint)
+  // ✅ Fetch bill data (Superadmin-compatible)
   useEffect(() => {
     if (!id || !token) return;
 
     const fetchBill = async () => {
       try {
-        const res = await axios.get(
-          `http://3.109.62.26/api/billing/clinic/material-purchase/${id}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const clinicId = localStorage.getItem("clinic_id");
+
+        // ✅ Build API dynamically
+        let apiUrl = `http://3.109.62.26/api/billing/clinic/material-purchase/${id}/`;
+        if (clinicId) apiUrl += `?clinic_id=${clinicId}`;
+
+        const res = await axios.get(apiUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
         setFormData(res.data);
       } catch (error: any) {
         console.error("Error fetching bill:", error.response?.data || error.message);
       }
     };
+
     fetchBill();
   }, [id, token]);
 
-  // ✅ Handle form input changes
-  const handleBillChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  // ✅ Handle input change
+  const handleBillChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
+  // ✅ Handle item change
   const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const updated = [...formData.items];
-    updated[index] = { ...updated[index], [name]: value };
-    setFormData({ ...formData, items: updated });
+    const updatedItems = [...formData.items];
+    updatedItems[index] = { ...updatedItems[index], [name]: value };
+    setFormData({ ...formData, items: updatedItems });
   };
 
-  // ✅ Add / Remove item rows
+  // ✅ Add new item row
   const addItemRow = () => {
     setFormData({
       ...formData,
@@ -106,13 +113,14 @@ const EditMaterialPurchaseBill = () => {
     });
   };
 
+  // ✅ Remove item row
   const removeItemRow = (index: number) => {
     const updated = [...formData.items];
     updated.splice(index, 1);
     setFormData({ ...formData, items: updated });
   };
 
-  // ✅ Submit (PUT for edit / POST for create)
+  // ✅ Submit (PUT for edit / POST for create) — Superadmin-compatible
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -120,29 +128,24 @@ const EditMaterialPurchaseBill = () => {
     try {
       if (!token) throw new Error("No access token found");
 
-      if (id) {
-        await axios.put(
-          `http://3.109.62.26/api/billing/clinic/material-purchase/${id}/`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+      const clinicId = localStorage.getItem("clinic_id");
+      const isEdit = Boolean(id);
+
+      // ✅ Dynamic API URL (add clinic_id for superadmin)
+      let apiUrl = `http://3.109.62.26/api/billing/clinic/material-purchase/`;
+      if (isEdit) apiUrl += `${id}/`;
+      if (clinicId) apiUrl += `?clinic_id=${clinicId}`;
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      };
+
+      if (isEdit) {
+        await axios.put(apiUrl, formData, { headers });
         alert("Bill updated successfully!");
       } else {
-        await axios.post(
-          "http://3.109.62.26/api/billing/clinic/material-purchase/",
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        await axios.post(apiUrl, formData, { headers });
         alert("Bill added successfully!");
       }
 
@@ -154,7 +157,7 @@ const EditMaterialPurchaseBill = () => {
       setLoading(false);
     }
   };
-
+  
   return (
     <>
       <Header />

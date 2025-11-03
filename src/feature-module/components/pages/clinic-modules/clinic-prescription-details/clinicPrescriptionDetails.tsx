@@ -28,6 +28,7 @@ const ClinicPrescriptionDetails = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
+    const clinicId = localStorage.getItem("clinic_id"); // ✅ add this
     if (!token) {
       navigate("/login-cover");
       return;
@@ -35,16 +36,22 @@ const ClinicPrescriptionDetails = () => {
 
     const fetchPrescription = async () => {
       try {
-        // ✅ Step 1: Fetch list API to get `created_at`
-        const listResponse = await axios.get(
-          "http://3.109.62.26/api/clinic/prescriptions/",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        // ✅ Build URLs with optional clinic_id (for superadmin)
+        let listUrl = "http://3.109.62.26/api/clinic/prescriptions/";
+        let detailUrl = `http://3.109.62.26/api/clinic/prescriptions/${prescriptionId}/`;
+
+        if (clinicId) {
+          listUrl += `?clinic_id=${clinicId}`;
+          detailUrl += `?clinic_id=${clinicId}`;
+        }
+
+        // ✅ Step 1: Fetch list API to get created_at
+        const listResponse = await axios.get(listUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
         const listData = listResponse.data;
         const matchedPrescription = listData.find(
@@ -55,16 +62,13 @@ const ClinicPrescriptionDetails = () => {
           setCreatedAt(matchedPrescription.created_at);
         }
 
-        // ✅ Step 2: Fetch details API
-        const detailResponse = await axios.get(
-          `http://3.109.62.26/api/clinic/prescriptions/${prescriptionId}/`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        // ✅ Step 2: Fetch detail API
+        const detailResponse = await axios.get(detailUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
         setPrescription(detailResponse.data);
       } catch (error: any) {

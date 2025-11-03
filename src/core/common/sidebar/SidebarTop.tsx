@@ -46,52 +46,58 @@ const SidebarTop = () => {
   }, []);
 
   // ✅ Handle switching between panels
-  const handleSwitch = async (user: UserItem) => {
-    console.log(user)
-    const token = localStorage.getItem("access_token");
-    if (!token) return;
+ const handleSwitch = async (user: UserItem) => {
+  console.log(user);
+  const token = localStorage.getItem("access_token");
+  if (!token) return;
 
-    try {
-      const res = await axios.post(
-        "http://3.109.62.26/api/admin-panel/switch-panel/",
-        { target_id: user.id },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  try {
+    const res = await axios.post(
+      "http://3.109.62.26/api/admin-panel/switch-panel/",
+      { target_id: user.id },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const { access, acting_as, target_id, target_name } = res.data;
+    const { access, acting_as, target_id, target_name } = res.data;
 
-      // ✅ Store new token & context including clinic_id
-      localStorage.setItem("access_token", access);
-      localStorage.setItem("acting_as_role", acting_as);
-      localStorage.setItem("acting_as_user_id", target_id.toString());
-      localStorage.setItem("acting_as_user_name", target_name);
-      
-      // ✅ Set clinic_id in localStorage
-      if (user.clinic_id) {
-        localStorage.setItem("clinic_id", user.clinic_id.toString());
-      } else {
-        // For superadmin or users without clinic_id, remove it or set to null
-        localStorage.removeItem("clinic_id");
-      }
+    // ✅ Store new token & role context
+    localStorage.setItem("access_token", access);
+    localStorage.setItem("acting_as_role", acting_as);
+    localStorage.setItem("acting_as_user_id", target_id.toString());
+    localStorage.setItem("acting_as_user_name", target_name);
 
-      axios.defaults.headers.common["Authorization"] = `Bearer ${access}`;
-
-      // ✅ Set selected user & close dropdown
-      setSelectedUser(user);
-      setOpen(false);
-
-      // ✅ Hard reload ensures React fully reboots with new token context
-      if (acting_as === "clinic") {
-        window.location.href = `/clinic/dashboard/${target_id}`;
-      } else if (acting_as === "doctor") {
-        window.location.href = `/doctor/dashboard/${target_id}`;
-      } else {
-        window.location.href = `/dashboard`;
-      }
-    } catch (err: any) {
-      console.error("❌ Switch failed:", err.response || err);
+    // ✅ Store context IDs based on role
+    if (user.role === "clinic" && user.clinic_id) {
+      localStorage.setItem("clinic_id", user.clinic_id.toString());
+      localStorage.removeItem("doctor_id");
+    } else if (user.role === "doctor") {
+      localStorage.setItem("doctor_id", user.id.toString());
+      localStorage.removeItem("clinic_id");
+    } else {
+      // For superadmin or others
+      localStorage.removeItem("clinic_id");
+      localStorage.removeItem("doctor_id");
     }
-  };
+
+    axios.defaults.headers.common["Authorization"] = `Bearer ${access}`;
+
+    // ✅ Update UI
+    setSelectedUser(user);
+    setOpen(false);
+
+    // ✅ Redirect based on acting_as
+    if (acting_as === "clinic") {
+      window.location.href = `/clinic/dashboard/${target_id}`;
+    } else if (acting_as === "doctor") {
+      window.location.href = `/doctor/dashboard/${target_id}`;
+    } else {
+      window.location.href = `/dashboard`;
+    }
+  } catch (err: any) {
+    console.error("❌ Switch failed:", err.response || err);
+  }
+};
+
 
   return (
     <div className="sidebar-top shadow-sm p-2 rounded-1 mb-3">

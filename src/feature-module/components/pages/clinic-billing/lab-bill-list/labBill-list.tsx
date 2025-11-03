@@ -51,6 +51,7 @@ api.interceptors.response.use(
 const LabBills = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("access_token");
+  
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -67,49 +68,81 @@ const LabBills = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
 
-  // ✅ Fetch lab bills
+  // ✅ Fetch Lab Bills
   useEffect(() => {
+    const token = localStorage.getItem("access_token");
     if (!token) {
       navigate("/login-cover");
       return;
     }
-
-    const fetchBills = async () => {
-      try {
-        // Adjust endpoint path relative to baseURL
-        const res = await api.get("lab-bill/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const bills = Array.isArray(res.data)
-          ? res.data
-          : res.data.results || [];
-        setData(bills);
-      } catch (error) {
-        console.error("Error fetching lab bills:", error);
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchBills();
-  }, [navigate, token]);
+  }, [navigate]);
 
-  // ✅ Delete bill
+  const fetchBills = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const clinicId = localStorage.getItem("clinic_id");
+
+      // ✅ Build API URL dynamically for superadmin
+      let apiUrl = "http://3.109.62.26/api/billing/clinic/lab-bill/";
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
+
+      const response = await fetch(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch lab bills");
+      }
+
+      const result = await response.json();
+      setData(result);
+    } catch (error) {
+      console.error("Error fetching lab bills:", error);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Delete Lab Bill
   const handleDelete = async () => {
     if (!deleteId) return;
     setDeleting(true);
 
     try {
-      await api.delete(`billing/admin/lab-bill/${deleteId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const token = localStorage.getItem("access_token");
+      const clinicId = localStorage.getItem("clinic_id");
+
+      let apiUrl = `http://3.109.62.26/api/billing/clinic/lab-bill/${deleteId}/`;
+      if (clinicId) {
+        apiUrl += `?clinic_id=${clinicId}`;
+      }
+
+      const response = await fetch(apiUrl, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete lab bill");
+      }
+
+      // ✅ Remove deleted bill from state
       setData((prev) => prev.filter((item) => item.id !== deleteId));
       setDeleteId(null);
       (window as any).$(`#delete_modal`).modal("hide");
     } catch (error) {
       console.error("Error deleting lab bill:", error);
+      alert("Error deleting lab bill");
     } finally {
       setDeleting(false);
     }

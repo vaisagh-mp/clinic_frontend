@@ -48,16 +48,15 @@ const EditClinicBill = () => {
     }
   }, [token, navigate]);
 
-  // ✅ Fetch clinics
+  // ✅ Fetch clinics (for superadmin)
   useEffect(() => {
     if (!token) return;
 
     const fetchClinics = async () => {
       try {
-        const res = await axios.get(
-          "http://3.109.62.26/api/admin-panel/clinics/",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const res = await axios.get("http://3.109.62.26/api/admin-panel/clinics/", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setClinics(res.data.results || res.data);
       } catch (err: any) {
         console.error("Error fetching clinics:", err.response?.data || err.message);
@@ -66,25 +65,31 @@ const EditClinicBill = () => {
     fetchClinics();
   }, [token]);
 
-  // ✅ Fetch bill data for editing
+  // ✅ Fetch bill data for editing (superadmin-compatible)
   useEffect(() => {
     if (!id || !token) return;
 
     const fetchBill = async () => {
       try {
-        const res = await axios.get(
-          `http://3.109.62.26/api/billing/clinic/clinic-bill/${id}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const clinicId = localStorage.getItem("clinic_id");
+
+        let apiUrl = `http://3.109.62.26/api/billing/clinic/clinic-bill/${id}/`;
+        if (clinicId) apiUrl += `?clinic_id=${clinicId}`;
+
+        const res = await axios.get(apiUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
         setFormData(res.data);
       } catch (error: any) {
         console.error("Error fetching bill:", error.response?.data || error.message);
+        alert(error.response?.data?.detail || "Failed to fetch bill data");
       }
     };
     fetchBill();
   }, [id, token]);
 
-  // Handle bill-level changes
+  // ✅ Handle bill-level changes
   const handleBillChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -92,7 +97,7 @@ const EditClinicBill = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // Handle item change
+  // ✅ Handle item change
   const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const updated = [...formData.items];
@@ -100,7 +105,7 @@ const EditClinicBill = () => {
     setFormData({ ...formData, items: updated });
   };
 
-  // Add item row
+  // ✅ Add and Remove Item Rows
   const addItemRow = () => {
     setFormData({
       ...formData,
@@ -108,14 +113,13 @@ const EditClinicBill = () => {
     });
   };
 
-  // Remove item row
   const removeItemRow = (index: number) => {
     const updated = [...formData.items];
     updated.splice(index, 1);
     setFormData({ ...formData, items: updated });
   };
 
-  // Save (PUT if edit, POST if new)
+  // ✅ Save (PUT if edit, POST if new) — superadmin compatible
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -123,31 +127,34 @@ const EditClinicBill = () => {
     try {
       if (!token) throw new Error("No access token found");
 
+      const clinicId = localStorage.getItem("clinic_id");
+      let apiUrl = `http://3.109.62.26/api/billing/clinic/clinic-bill/`;
+      if (id) apiUrl += `${id}/`;
+      if (clinicId) apiUrl += `?clinic_id=${clinicId}`;
+
+      // ✅ Attach clinic_id if superadmin
+      const payload = {
+        ...formData,
+        clinic: formData.clinic || (clinicId ? Number(clinicId) : ""),
+      };
+
       if (id) {
-        // update bill
-        await axios.put(
-          `http://3.109.62.26/api/billing/clinic/clinic-bill/${id}/`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        // Update bill
+        await axios.put(apiUrl, payload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
         alert("Clinic bill updated successfully!");
       } else {
-        // create new bill
-        await axios.post(
-          "http://3.109.62.26/api/billing/clinic/clinic-bill/",
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        // Create new bill
+        await axios.post(apiUrl, payload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
         alert("Clinic bill added successfully!");
       }
 
