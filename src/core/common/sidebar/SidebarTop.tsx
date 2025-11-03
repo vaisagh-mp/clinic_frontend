@@ -46,7 +46,7 @@ const SidebarTop = () => {
   }, []);
 
   // ✅ Handle switching between panels
- const handleSwitch = async (user: UserItem) => {
+const handleSwitch = async (user: UserItem & { doctor_id?: number }) => {
   console.log(user);
   const token = localStorage.getItem("access_token");
   if (!token) return;
@@ -70,10 +70,22 @@ const SidebarTop = () => {
     if (user.role === "clinic" && user.clinic_id) {
       localStorage.setItem("clinic_id", user.clinic_id.toString());
       localStorage.removeItem("doctor_id");
-    } else if (user.role === "doctor") {
-      localStorage.setItem("doctor_id", user.id.toString());
-      localStorage.removeItem("clinic_id");
-    } else {
+    } 
+    else if (user.role === "doctor") {
+      // 👉 store doctor_id if available, otherwise fallback to user.id
+      if (user.doctor_id) {
+        localStorage.setItem("doctor_id", user.doctor_id.toString());
+      } else {
+        localStorage.setItem("doctor_id", user.id.toString());
+      }
+      // optional: store clinic_id if exists
+      if (user.clinic_id) {
+        localStorage.setItem("clinic_id", user.clinic_id.toString());
+      } else {
+        localStorage.removeItem("clinic_id");
+      }
+    } 
+    else {
       // For superadmin or others
       localStorage.removeItem("clinic_id");
       localStorage.removeItem("doctor_id");
@@ -97,7 +109,6 @@ const SidebarTop = () => {
     console.error("❌ Switch failed:", err.response || err);
   }
 };
-
 
   return (
     <div className="sidebar-top shadow-sm p-2 rounded-1 mb-3">

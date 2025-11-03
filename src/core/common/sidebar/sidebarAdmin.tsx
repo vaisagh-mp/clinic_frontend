@@ -153,7 +153,7 @@ const Sidebar = () => {
         {/* Sidenav Menu */}
         <div className="sidebar-inner" data-simplebar="">
           <div id="sidebar-menu" className="sidebar-menu">
-            {/* <SidebarTop /> */}
+           <SidebarTop />
             <ul>
               {SidebarData?.map((mainLabel, index) => (
                 <React.Fragment key={`main-${index}`}>

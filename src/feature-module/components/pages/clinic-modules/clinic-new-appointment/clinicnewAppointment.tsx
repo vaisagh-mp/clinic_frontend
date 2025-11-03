@@ -276,7 +276,7 @@ const ClinicnewAppointment = () => {
 
                   {/* Buttons */}
                   <div className="d-flex align-items-center justify-content-end mt-3">
-                    <Link to="#" className="btn btn-light me-2">Cancel</Link>
+                    <Link to={all_routes.clinicappointments} className="btn btn-light me-2">Cancel</Link>
                     <button onClick={handleSubmit} className="btn btn-primary">Create Appointment</button>
                   </div>
                 </div>

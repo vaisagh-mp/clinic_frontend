@@ -139,7 +139,7 @@ const LabBills = () => {
       // ✅ Remove deleted bill from state
       setData((prev) => prev.filter((item) => item.id !== deleteId));
       setDeleteId(null);
-      (window as any).$(`#delete_modal`).modal("hide");
+      // (window as any).$(`#delete_modal`).modal("hide");
     } catch (error) {
       console.error("Error deleting lab bill:", error);
       alert("Error deleting lab bill");

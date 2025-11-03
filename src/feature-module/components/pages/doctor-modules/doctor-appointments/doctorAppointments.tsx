@@ -27,8 +27,17 @@ const DoctorAppointments = () => {
       setLoading(true);
       setError(null);
       try {
+        // ✅ Get doctor_id from localStorage
+        const doctorId = localStorage.getItem("doctor_id");
+      
+        // ✅ Build URL with doctor_id parameter if it exists
+        let apiUrl = `http://3.109.62.26/api/doctor/appointments/`;
+        if (doctorId) {
+          apiUrl += `?doctor_id=${doctorId}`;
+        }
+        
         const response = await axios.get(
-          "http://3.109.62.26/api/doctor/appointments/",
+          apiUrl,
           {
             headers: {
               Authorization: `Bearer ${token}`,

@@ -78,7 +78,20 @@ const OnlineConsultations = () => {
   const fetchMedicines = async () => {
     try {
       const token = localStorage.getItem("access_token");
-      const response = await axios.get("http://3.109.62.26/api/billing/medicines/", {
+       // ✅ Get clinic_id from localStorage
+        const clinicId = localStorage.getItem("clinic_id");
+        const doctorId = localStorage.getItem("doctor_id");
+
+        // ✅ Build URL with clinic_id parameter if it exists
+        let apiUrl = `http://3.109.62.26/api/billing/medicines/`;
+        if (clinicId) {
+          apiUrl += `?clinic_id=${clinicId}`;
+        }
+        if (doctorId) {
+          apiUrl += `&doctor_id=${doctorId}`;
+        }
+
+      const response = await axios.get(apiUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const options = response.data.map((med: any) => ({
@@ -103,7 +116,19 @@ const OnlineConsultations = () => {
   const fetchProcedures = async () => {
     try {
       const token = localStorage.getItem("access_token");
-      const response = await axios.get("http://3.109.62.26/api/billing/procedures/", {
+       // ✅ Get clinic_id from localStorage
+        const clinicId = localStorage.getItem("clinic_id");
+        const doctorId = localStorage.getItem("doctor_id");
+
+        // ✅ Build URL with clinic_id parameter if it exists
+        let apiUrl = `http://3.109.62.26/api/billing/procedures/`;
+        if (clinicId) {
+          apiUrl += `?clinic_id=${clinicId}`;
+        }
+        if (doctorId) {
+          apiUrl += `&doctor_id=${doctorId}`;
+        }
+      const response = await axios.get(apiUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const procOptions = response.data.map((proc: any) => ({
@@ -196,8 +221,21 @@ const OnlineConsultations = () => {
 
   const fetchAppointment = async () => {
     try {
+      // ✅ Get clinic_id from localStorage
+        // const clinicId = localStorage.getItem("clinic_id");
+        const doctorId = localStorage.getItem("doctor_id");
+
+        // ✅ Build URL with clinic_id parameter if it exists
+        let apiUrl = `http://3.109.62.26/api/doctor/appointments/${appointmentId}/`;
+        // if (clinicId) {
+        //   apiUrl += `?clinic_id=${clinicId}`;
+        // }
+         if (doctorId) {
+          apiUrl += `?doctor_id=${doctorId}`;
+        }
+
       const response = await axios.get(
-        `http://3.109.62.26/api/doctor/appointments/${appointmentId}/`,
+        apiUrl,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -310,11 +348,23 @@ const OnlineConsultations = () => {
 
   return payload;
 });
+    // ✅ Get clinic_id from localStorage
+    const clinicId = localStorage.getItem("clinic_id");
+      const doctorId = localStorage.getItem("doctor_id");
+  
+    // ✅ Build URL with clinic_id parameter if it exists
+    let apiUrl = `http://3.109.62.26/api/doctor/consultations/`;
+    if (clinicId) {
+      apiUrl += `?clinic_id=${clinicId}`;
+    }
+     if (doctorId) {
+          apiUrl += `&doctor_id=${doctorId}`;
+        }
 
       await axios.post(
-  "http://3.109.62.26/api/doctor/consultations/",
+  apiUrl,
   {
-    doctor: appointmentData.doctor_id,
+    doctor: appointmentData.clinic_id,
     patient: appointmentData.patient.id,
     appointment: appointmentData.id,
     ...formData,

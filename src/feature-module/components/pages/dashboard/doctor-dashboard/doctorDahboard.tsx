@@ -41,11 +41,16 @@ const DoctorDahboard = () => {
 
   const fetchAppointments = async () => {
     try {
-      const url = id
-        ? `http://3.109.62.26/api/doctor/appointments/${id}/`
-        : `http://3.109.62.26/api/doctor/appointments/`;
+      // ✅ Get doctor_id from localStorage
+        const doctorId = localStorage.getItem("doctor_id");
+      
+        // ✅ Build URL with doctor_id parameter if it exists
+        let apiUrl = `http://3.109.62.26/api/doctor/appointments/`;
+        if (doctorId) {
+          apiUrl += `?doctor_id=${doctorId}`;
+        }
 
-      const response = await axios.get(url, {
+      const response = await axios.get(apiUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
