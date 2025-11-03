@@ -30,29 +30,30 @@ const RegisterCover = () => {
 
   // ✅ Fetch roles dynamically
   useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const res = await axios.get("http://3.109.62.26/api/accounts/users/");
-        const users = res.data;
+  const checkSuperadmin = async () => {
+    try {
+      const res = await axios.get("http://3.109.62.26/api/accounts/users/");
+      const users = res.data || [];
 
-        const roles: string[] = ["CLINIC"]; // always available
+      const superadminExists = users.some(
+        (user: any) => user.role?.toUpperCase() === "SUPERADMIN"
+      );
 
-        const superadminExists = users.some(
-          (user: any) => user.role === "SUPERADMIN"
-        );
-        if (!superadminExists) {
-          roles.push("SUPERADMIN");
-        }
-
-        setAvailableRoles(roles);
-      } catch (err) {
-        console.error("Error fetching users", err);
-        setAvailableRoles(["CLINIC"]); // fallback
+      if (superadminExists) {
+        setAvailableRoles(["CLINIC"]);
+      } else {
+        setAvailableRoles(["CLINIC", "SUPERADMIN"]);
       }
-    };
+    } catch (err: any) {
+      console.warn("Could not fetch users, defaulting to CLINIC + SUPERADMIN");
+      // ✅ fallback if API fails (like on fresh setup)
+      setAvailableRoles(["CLINIC", "SUPERADMIN"]);
+    }
+  };
 
-    fetchRoles();
-  }, []);
+  checkSuperadmin();
+}, []);
+
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
