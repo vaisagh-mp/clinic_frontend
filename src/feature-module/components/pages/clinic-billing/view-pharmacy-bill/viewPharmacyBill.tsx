@@ -152,10 +152,8 @@ const printBill = async () => {
   const originalWidth = printRef.current.style.width;
   printRef.current.style.width = "210mm"; // full A4 width
 
-  // Wait a tick to ensure DOM updates
   await new Promise((resolve) => setTimeout(resolve, 50));
 
-  // Capture the bill
   const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true });
   const imgData = canvas.toDataURL("image/png");
 
@@ -164,13 +162,16 @@ const printBill = async () => {
   const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
   pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-  pdf.save(`Pharmacy_Bill_${billData.bill_number}.pdf`);
+
+  // ✅ Open PDF in new tab & trigger print dialog
+  pdf.autoPrint();
+  const pdfBlob = pdf.output("bloburl");
+  window.open(pdfBlob, "_blank");
 
   // Restore original state
   printRef.current.style.width = originalWidth;
   elementsToHide.forEach(el => el.style.removeProperty("display"));
 };
-
 
 
 

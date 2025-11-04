@@ -252,31 +252,37 @@ const AddPharmacyBill = () => {
     const payload = { ...formData, items: cleanedItems };
 
     // ✅ Include clinic_id in URL if superadmin switched
-const clinicId = localStorage.getItem("clinic_id");
-let apiUrl = "http://3.109.62.26/api/billing/clinic/pharmacy-bill/";
+    const clinicId = localStorage.getItem("clinic_id");
+    let apiUrl = "http://3.109.62.26/api/billing/clinic/pharmacy-bill/";
 
-// Build config for axios
-const config = {
-  headers: {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  },
-  params: {} as any,
-};
+    // Build config for axios
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      params: {} as any,
+    };
 
-// Append clinic_id if available
-if (clinicId) {
-  config.params.clinic_id = clinicId;
-}
+    // Append clinic_id if available
+    if (clinicId) {
+      config.params.clinic_id = clinicId;
+    }
 
-const response = await axios.post(apiUrl, payload, config);
+    const response = await axios.post(apiUrl, payload, config);
 
-alert("✅ Pharmacy Bill added successfully!");
+    alert("✅ Pharmacy Bill added successfully!");
 
-// 🧭 Safe delayed navigation to avoid alert blocking
-setTimeout(() => {
-  navigate(all_routes.clinicpharmacybillList);
-}, 100);
+    // 🧭 Redirect to the newly created bill's view page
+    const newBillId = response.data?.id; // assuming API returns { id: ... }
+    if (newBillId) {
+      setTimeout(() => {
+        navigate(`/clinic-dashboard/view-pharmacy-bill/${newBillId}`);
+      }, 100);
+    } else {
+      // fallback: go back to list if id not returned
+      navigate(all_routes.clinicpharmacybillList);
+    }
   } catch (err: any) {
     console.error("Error adding pharmacy bill:", err.response?.data || err.message);
     alert(err.response?.data?.detail || "❌ Failed to add bill");

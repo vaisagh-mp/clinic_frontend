@@ -251,64 +251,73 @@ const calculateSubtotal = (item: Item) => {
 
   // ✅ Submit (PUT/POST with superadmin compatibility)
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    for (const item of formData.items) {
-      if (item.item_type === "PROCEDURE") {
-        if (!item.procedure_payments || item.procedure_payments.length === 0) {
-          alert("Each procedure must have at least one payment.");
+  for (const item of formData.items) {
+    if (item.item_type === "PROCEDURE") {
+      if (!item.procedure_payments || item.procedure_payments.length === 0) {
+        alert("Each procedure must have at least one payment.");
+        return;
+      }
+      for (const payment of item.procedure_payments) {
+        if (!payment.amount_paid || payment.amount_paid <= 0) {
+          alert("Please enter a valid Amount Paid for all procedure payments.");
           return;
         }
-        for (const payment of item.procedure_payments) {
-          if (!payment.amount_paid || payment.amount_paid <= 0) {
-            alert("Please enter a valid Amount Paid for all procedure payments.");
-            return;
-          }
-        }
       }
     }
+  }
 
-    setLoading(true);
-    try {
-      if (!token) throw new Error("No access token found");
+  setLoading(true);
+  try {
+    if (!token) throw new Error("No access token found");
 
-      const clinicId = localStorage.getItem("clinic_id");
-      const isEdit = Boolean(id);
+    const clinicId = localStorage.getItem("clinic_id");
+    const isEdit = Boolean(id);
 
-      let apiUrl = `http://3.109.62.26/api/billing/clinic/pharmacy-bill/`;
-      if (isEdit) apiUrl += `${id}/`;
-      if (clinicId) apiUrl += `?clinic_id=${clinicId}`;
+    let apiUrl = `http://3.109.62.26/api/billing/clinic/pharmacy-bill/`;
+    if (isEdit) apiUrl += `${id}/`;
+    if (clinicId) apiUrl += `?clinic_id=${clinicId}`;
 
-      const payload = {
-        ...formData,
-        items: formData.items.map((item) => ({
-          item_type: item.item_type,
-          medicine_id: item.item_type === "MEDICINE" ? item.medicine : null,
-          procedure_id: item.item_type === "PROCEDURE" ? item.procedure : null,
-          quantity: item.quantity,
-          unit_price: item.unit_price || 0,
-          procedure_payments: item.procedure_payments || [],
-        })),
-      };
+    const payload = {
+      ...formData,
+      items: formData.items.map((item) => ({
+        item_type: item.item_type,
+        medicine_id: item.item_type === "MEDICINE" ? item.medicine : null,
+        procedure_id: item.item_type === "PROCEDURE" ? item.procedure : null,
+        quantity: item.quantity,
+        unit_price: item.unit_price || 0,
+        procedure_payments: item.procedure_payments || [],
+      })),
+    };
 
-      const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
 
-      if (isEdit) {
-        await axios.put(apiUrl, payload, { headers });
-        alert("Pharmacy Bill updated successfully!");
+    if (isEdit) {
+      await axios.put(apiUrl, payload, { headers });
+      alert("Pharmacy Bill updated successfully!");
+      navigate(`/clinic-dashboard/view-pharmacy-bill/${id}`);
+    } else {
+      const response = await axios.post(apiUrl, payload, { headers });
+      const newBillId = response.data?.id; // ✅ Get new bill ID from response
+      alert("Pharmacy Bill added successfully!");
+      if (newBillId) {
+        navigate(`/clinic-dashboard/view-pharmacy-bill/${newBillId}`);
       } else {
-        await axios.post(apiUrl, payload, { headers });
-        alert("Pharmacy Bill added successfully!");
+        navigate(all_routes.clinicpharmacybillList);
       }
-
-      navigate(all_routes.clinicpharmacybillList);
-    } catch (err: any) {
-      console.error("Error saving bill:", err.response?.data || err.message);
-      alert(err.response?.data?.detail || err.message || "Failed to save bill");
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (err: any) {
+    console.error("Error saving bill:", err.response?.data || err.message);
+    alert(err.response?.data?.detail || err.message || "Failed to save bill");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <>

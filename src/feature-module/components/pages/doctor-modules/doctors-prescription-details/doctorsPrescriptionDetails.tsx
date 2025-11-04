@@ -141,16 +141,23 @@ const DoctorsPrescriptionDetails = () => {
                     <div className="text-lg-end">
                       <p className="text-dark mb-1">
                         Department:{" "}
-                        <span className="text-body">{doctor.department}</span>
+                        <span className="text-body">Dental Care</span>
                       </p>
                       <p className="text-dark mb-1">
                         Prescribed on:{" "}
                         <span className="text-body">
-                          {created_at
-                            ? new Date(created_at).toLocaleDateString()
+                          {prescriptions?.length > 0 && prescriptions[0].created_at
+                            ? new Date(prescriptions[0].created_at)
+                                .toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })
+                                .replace(/ /g, "-")
                             : "N/A"}
                         </span>
                       </p>
+
                       <p className="text-dark mb-0">
                         Clinic: <span className="text-body">{clinic.name}</span>
                       </p>

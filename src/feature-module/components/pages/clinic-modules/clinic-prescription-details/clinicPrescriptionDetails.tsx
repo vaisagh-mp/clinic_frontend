@@ -106,7 +106,7 @@ const ClinicPrescriptionDetails = () => {
               <div className="d-flex align-items-sm-center flex-sm-row flex-column mb-4">
                 <div className="flex-grow-1">
                   <h6 className="fw-bold mb-0 d-flex align-items-center">
-                    <Link to={all_routes.doctorsprescriptions} className="me-1">
+                    <Link to={all_routes.clinicPrescriptions} className="me-1">
                       <i className="ti ti-chevron-left" /> Prescriptions
                     </Link>
                   </h6>
@@ -253,12 +253,12 @@ const ClinicPrescriptionDetails = () => {
                 >
                   <i className="ti ti-printer me-1" /> Print
                 </button>
-                <button
+                {/* <button
                   onClick={handlePrint}
                   className="btn btn-md btn-primary d-flex align-items-center"
                 >
                   <i className="ti ti-download me-1" /> Download
-                </button>
+                </button> */}
               </div>
             </div>
           </div>

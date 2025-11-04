@@ -137,7 +137,7 @@ const ClinicEditPatient = () => {
 
       console.log("Patient Updated:", response.data);
       alert("Patient updated successfully!");
-      navigate(all_routes.clinicpatients);
+      navigate(all_routes.patients);
     } catch (error: any) {
       console.error("Error updating patient:", error.response?.data || error);
       alert("Failed to update patient. Please try again.");

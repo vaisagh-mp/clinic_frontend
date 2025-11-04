@@ -68,7 +68,15 @@ const Dashboard = () => {
   });
   const series = [{ name: "Data", data: [40, 15, 60, 15, 90, 20, 70] }];
 
-  const allDoctors = (dashboardData?.doctors || []).slice(0, 3);
+  // const allDoctors = (dashboardData?.doctors || []).slice(0, 3);
+  const allDoctors = (dashboardData?.doctors || []).slice(0, 3).map((doc: any) => {
+  // Try to find this doctor in the nested clinic data
+  const clinicDoctor = dashboardData?.clinics?.flatMap((c: any) => c.doctors || []).find(
+    (d: any) => d.id === doc.id
+  );
+  return { ...doc, ...clinicDoctor }; 
+});
+
 
 // Merge patient data — enrich dashboard patients with full info
 const displayedPatients = (dashboardData?.patients || [])
@@ -218,7 +226,7 @@ const limitedAppointments = appointments.slice(0, 5);
                             </div>
                           </div>
                           <p className="mb-0">
-                            <span className="text-dark fw-semibold">{doctor.bookings || 0}</span> Bookings
+                            <span className="text-dark fw-semibold">{doctor.bookings || 0}</span> Appointment
                           </p>
                         </div>
                       </div>
