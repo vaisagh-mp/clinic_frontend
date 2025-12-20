@@ -321,7 +321,7 @@ export const SidebarData = [
           // { label: "Patient Details", link: routes.patientDetails },         
           { label: "Clinic Bills", link: routes.clinicbillList },
           { label: "Lab Bills", link: routes.labbillList },
-          // { label: "Pharmacy Bills", link: routes.pharmacybillList },
+          { label: "Pharmacy Bills", link: routes.pharmacybillList },
         ],
       },
 
